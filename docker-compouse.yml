@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  order:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: OrderService
+    container_name: order
+    env_file:
+      - OrderService/.env
+    ports:
+      - "50052:50052"
+      - "9092:9092"
+    depends_on:
+      - market
+      - redis
