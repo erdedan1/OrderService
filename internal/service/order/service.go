@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"OrderService/internal/dto"
@@ -41,6 +42,8 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 	}
 
 	if !user.CheckRoles(request.UserRoles) {
+		fmt.Println(request.UserRoles)
+		fmt.Println(user.Roles)
 		s.l.Error(method, "user has no acces to market ", errs.ErrUserHasNoAccessToMarket, request.UserId)
 		return nil, errs.ErrUserHasNoAccessToMarket
 	}
