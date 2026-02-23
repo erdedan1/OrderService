@@ -34,17 +34,17 @@ func (o *Order) Update(order Order) *Order {
 }
 
 const (
-	StatusCreated       = "created"
-	StatusPending       = "pending"
-	StatusWaitSeller    = "wait_seller"
-	StatusPaid          = "paid"
-	StatusOnHold        = "on_hold"
-	StatusProcessing    = "processing"
-	StatusPacked        = "packed"
-	StatusOutOfDelivery = "out_of_delivery"
-	StatusOnTheWay      = "on_the_way"
-	StatusDelivered     = "delivered"
-	StatusClosed        = "closed"
+	StatusCreated       = "ORDER_STATUS_CREATED"
+	StatusPending       = "ORDER_STATUS_PENDING"
+	StatusWaitSeller    = "ORDER_STATUS_WAIT_SELLER"
+	StatusPaid          = "ORDER_STATUS_PAID"
+	StatusOnHold        = "ORDER_STATUS_ON_HOLD"
+	StatusProcessing    = "ORDER_STATUS_PROCESSING"
+	StatusPacked        = "ORDER_STATUS_PACKED"
+	StatusOutOfDelivery = "ORDER_STATUS_OUT_OF_DELIVERY"
+	StatusOnTheWay      = "ORDER_STATUSON_THE_WAY"
+	StatusDelivered     = "ORDER_STATUS_DELIVERED"
+	StatusClosed        = "ORDER_STATUS_CLOSED"
 )
 
 var OrderStatusProcessing []string = []string{

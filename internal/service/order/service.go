@@ -163,7 +163,8 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 				}
 				s.l.Debug(method, "update new order status", request.UserId, request.OrderId)
 				ch <- &dto.GetOrderStatusResponse{
-					Status: orderUpdated.Status,
+					Status:   orderUpdated.Status,
+					UpdateAt: &orderUpdated.UpdateAt,
 				}
 			}
 		}

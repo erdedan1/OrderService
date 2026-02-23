@@ -74,7 +74,10 @@ func (s *Service) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 				return nil
 			}
 
-			err := stream.Send(&pb.GetOrderStatusResponse{Status: order.DtoToProto().Status})
+			err := stream.Send(&pb.GetOrderStatusResponse{
+				Status:    order.DtoToProto().Status,
+				UpdatedAt: order.DtoToProto().UpdatedAt,
+			})
 			if err != nil {
 				return err
 			}
