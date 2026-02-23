@@ -29,22 +29,22 @@ func NewRepo(logger log.Logger) *Repo {
 		{
 			ID:    uuid.MustParse("1179803e-06f0-4369-b94f-14e26ec190a3"),
 			Name:  "Gleb",
-			Roles: []string{"TRAIDER"},
+			Roles: []string{"USER_ROLE_TRADER"},
 		},
 		{
 			ID:    uuid.MustParse("2179803e-06f0-4369-b94f-14e26ec190a3"),
 			Name:  "Oleg",
-			Roles: []string{"ADMIN"},
+			Roles: []string{"USER_ROLE_ADMIN"},
 		},
 		{
 			ID:    uuid.MustParse("3179803e-06f0-4369-b94f-14e26ec190a3"),
 			Name:  "Vova",
-			Roles: []string{"TRADER"},
+			Roles: []string{"USER_ROLE_TRADER"},
 		},
 		{
 			ID:    uuid.MustParse("4179803e-06f0-4369-b94f-14e26ec190a3"),
 			Name:  "Arsen",
-			Roles: []string{"ADMIN"},
+			Roles: []string{"USER_ROLE_ADMIN"},
 		},
 	}
 	for _, user := range users {
