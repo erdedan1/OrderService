@@ -54,7 +54,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		s.l.Error(method, err.Error(), err)
 		return nil, err
 	}
-	if len(marketsCache) == 0 {
+	if len(marketsCache) == 0 || marketsCache == nil {
 		markets, err := s.pb.ViewMarketsByRoles(ctx, new(dto.ViewMarketsRequest).UserRolesToProto(user.Roles))
 		if err != nil {
 			s.l.Error(method, err.Error(), err, request.UserId)
