@@ -30,7 +30,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *pb.CreateOrderReques
 
 	order, err := s.srvs.OrderService.CreateOrder(ctx, requestDto)
 	if err != nil {
-		return nil, status.Error(codes.Code(7), err.Message)
+		return nil, status.Error(codes.PermissionDenied, err.Message)
 	}
 
 	return order.DtoToProto(), nil
