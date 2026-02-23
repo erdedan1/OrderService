@@ -25,7 +25,7 @@ func (s *marketDriver) ViewMarketsByRoles(
 ) ([]dto.ViewMarketsResponse, *errors.CustomError) {
 	resp, err := s.client.ViewMarketsByRoles(ctx, req.DtoToProto())
 	if err != nil {
-		return nil, errs.New(errs.INTERNAL, "hui") //или errs.UNAVAILABLE
+		return nil, errs.New(errs.INTERNAL, err.Error()) //или errs.UNAVAILABLE
 	}
 	marketsResp := make([]dto.ViewMarketsResponse, 0, len(resp.Markets))
 	for _, m := range resp.Markets {
