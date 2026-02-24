@@ -11,6 +11,7 @@ type Config struct {
 	GRPCApi        GRPCApiConfig        `validate:"required"`
 	GRPCClient     GRPCClientConfig     `validate:"required"`
 	Infrastructure InfrastructureConfig `validate:"required"`
+	PostgresDB     PostgresDB
 }
 
 type InfrastructureConfig struct {

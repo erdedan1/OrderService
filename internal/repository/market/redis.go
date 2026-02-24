@@ -23,23 +23,26 @@ type redisMarketsCache struct {
 func NewMarketsCache(client cache.RedisClient, l log.Logger) *redisMarketsCache {
 	return &redisMarketsCache{
 		client: client,
+		l:      l,
 	}
 }
+
+const layer = "RedisMarketCache"
 
 func (c *redisMarketsCache) Set(ctx context.Context, key string, value []dto.ViewMarketsResponse, ttl time.Duration) *error.CustomError {
 	const method = "Set"
 	data, err := json.Marshal(value)
 	if err != nil {
-		c.l.Error(method, "failed to marshal data", err)
+		c.l.Error(layer, method, "failed to marshal data", err)
 		return errs.ErrFailedSerializeRedis
 	}
 
 	err = c.client.Set(ctx, key, data, ttl).Err()
 	if err != nil {
-		c.l.Error(method, "failed to set market", err)
+		c.l.Error(layer, method, "failed to set market", err)
 		return errs.ErrUnavailableRedis
 	}
-	c.l.Debug(method, "success set market cache")
+	c.l.Debug(layer, method, "success set market cache")
 	return nil
 }
 
@@ -48,19 +51,22 @@ func (c *redisMarketsCache) Get(ctx context.Context, key string) ([]dto.ViewMark
 	val, err := c.client.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			c.l.Debug(method, "not found market in cache", err)
+			c.l.Debug(
+				method,
+				"not found market in cache",
+				"error", err.Error())
 			return nil, nil
 		}
-		c.l.Error(method, "failed to marshal data", err)
+		c.l.Error(layer, method, "failed to marshal data", err)
 		return nil, errs.ErrUnavailableDataRedis
 	}
 
 	var result []dto.ViewMarketsResponse
 	if err := json.Unmarshal([]byte(val), &result); err != nil {
-		c.l.Error(method, "failed to unmarshal data", err)
+		c.l.Error(layer, method, "failed to unmarshal data", err)
 		return nil, errs.ErrFailedDeserializeRedis
 	}
-	c.l.Debug(method, "success get market cache")
+	c.l.Debug(layer, method, "success get market cache")
 	return result, nil
 }
 
@@ -68,9 +74,9 @@ func (c *redisMarketsCache) Del(ctx context.Context, key string) *error.CustomEr
 	const method = "Del"
 	err := c.client.Del(ctx, key).Err()
 	if err != nil {
-		c.l.Error(method, "failed to delete market in cache", err)
+		c.l.Error(layer, method, "failed to delete market in cache", err)
 		return errs.ErrDeleteRedis
 	}
-	c.l.Debug(method, "success delete market in cache")
+	c.l.Debug(layer, method, "success delete market in cache")
 	return nil
 }

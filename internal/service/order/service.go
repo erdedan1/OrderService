@@ -27,60 +27,94 @@ func New(repo *usecase.Repositories, log log.Logger, pb spot_instrument_service.
 	return &Service{
 		repo: repo,
 		pb:   pb,
-		l:    log.Layer("Order.Service"),
+		l:    log,
 	}
 }
 
+const layer = "OrderService"
+
 func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderRequest) (*dto.CreateOrderResponse, *errors.CustomError) {
 	const method = "CreateOrder"
-
 	user, err := s.repo.UserRepo.GetUserById(ctx, request.UserId)
 	if err != nil {
-		s.l.Error(method, err.Error(), err, request.UserId)
+		s.l.Error(
+			layer,
+			method,
+			err.Error(),
+			err,
+			"user_id", request.UserId,
+		)
 		return nil, err
 	}
-
 	if !user.CheckRoles(request.UserRoles) {
-		s.l.Error(method, "user has no acces to market ", errs.ErrUserHasNoAccessToMarket, request.UserId)
+		s.l.Error(
+			layer, method,
+			"user has no acces to market",
+			errs.ErrUserHasNoAccessToMarket,
+			"user_id", request.UserId,
+		)
 		return nil, errs.ErrUserHasNoAccessToMarket
 	}
 
 	cacheKey := "markets:" + request.UserId.String()
 	marketsCache, err := s.repo.MarketCache.Get(ctx, cacheKey)
 	if err != nil {
-		s.l.Error(method, err.Error(), err)
+		s.l.Error(
+			layer, method,
+			err.Error(), err,
+		)
 		return nil, err
 	}
 	if len(marketsCache) == 0 || marketsCache == nil {
 		markets, err := s.pb.ViewMarketsByRoles(ctx, new(dto.ViewMarketsRequest).UserRolesToProto(user.Roles))
 		if err != nil {
-			s.l.Error(method, err.Error(), err, request.UserId)
+			s.l.Error(layer, method,
+				err.Error(), err,
+				"user_id", request.UserId,
+			)
 			return nil, err
 		}
 		if len(markets) == 0 {
-			s.l.Error(method, errs.ErrMarketNotFound.Message, errs.ErrMarketNotFound, request.UserId)
+			s.l.Error(
+				layer, method,
+				errs.ErrMarketNotFound.Message,
+				errs.ErrMarketNotFound,
+				"user_id", request.UserId,
+			)
 			return nil, errs.ErrMarketNotFound
 		}
 		err = s.repo.MarketCache.Set(ctx, cacheKey, markets, 5*time.Minute)
 		if err != nil {
-			s.l.Error(method, err.Message, err, request.UserId)
+			s.l.Error(
+				layer, method,
+				err.Message, err,
+				"user_id", request.UserId,
+			)
 			return nil, err
 		}
 	}
 
 	req, err := request.DtoToModel()
 	if err != nil {
-		s.l.Error(method, err.Error(), err, request.UserId)
+		s.l.Error(
+			layer, method,
+			err.Error(), err,
+			"user_id", request.UserId,
+		)
 		return nil, err
 	}
 
-	order, err := s.repo.OrderRepo.CreateOrder(ctx, *req)
+	order, err := s.repo.OrderRepo.CreateOrder(ctx, req)
 	if err != nil {
-		s.l.Error(method, err.Error(), err, request.UserId)
+		s.l.Error(
+			layer, method,
+			err.Error(), err,
+			"user_id", request.UserId,
+		)
 		return nil, err
 	}
 
-	s.l.Debug(method, "order success created")
+	s.l.Debug(layer, method, "order success created")
 
 	return &dto.CreateOrderResponse{
 		ID:     order.ID,
@@ -93,22 +127,34 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 
 	order, err := s.repo.OrderRepo.GetOrder(ctx, request.OrderId)
 	if err != nil {
-		s.l.Error(method, err.Error(), err, request.UserId, request.OrderId)
+		s.l.Error(
+			layer, method,
+			err.Error(), err,
+			"user_id", request.UserId,
+			"order_id", request.OrderId,
+		)
 		return nil, err
 	}
 
 	if order.UserId != request.UserId {
 		s.l.Error(
+			layer,
 			method,
 			errs.ErrInvalidUserID.Message,
 			errs.ErrInvalidUserID,
-			request.OrderId,
-			request.UserId,
+			"user_id", request.UserId,
+			"order_id", request.OrderId,
 		)
 		return nil, errs.ErrInvalidUserID
 	}
 
-	s.l.Debug(method, "get order info", order.ID, order.Status)
+	s.l.Debug(
+		layer,
+		method,
+		"get order info",
+		"order_id", order.ID,
+		"status", order.Status,
+	)
 
 	return &dto.GetOrderStatusResponse{Status: order.Status}, nil
 }
@@ -120,20 +166,40 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 
 	order, err := s.repo.OrderRepo.GetOrder(ctx, request.OrderId)
 	if err != nil {
-		s.l.Error(method, err.Error(), err, request.OrderId, request.UserId)
+		s.l.Error(
+			layer, method,
+			err.Error(), err,
+			"order_id", order.ID,
+			"status", order.Status,
+		)
 		return nil, err
 	}
 
 	if order.UserId != request.UserId {
 		defer close(ch)
 		s.l.Error(
-			method,
+			layer, method,
 			errs.ErrInvalidUserID.Message,
 			errs.ErrInvalidUserID,
-			request.OrderId,
-			request.UserId,
+			"order_id", request.OrderId,
+			"user_id", request.UserId,
 		)
 		return ch, errs.ErrInvalidUserID
+	}
+
+	if order.Status == model.StatusClosed {
+		defer close(ch)
+		s.l.Debug(
+			layer, method,
+			"order status completed and closed",
+			"user_id", request.UserId,
+			"order_id", request.OrderId,
+		)
+		ch <- &dto.GetOrderStatusResponse{
+			Status:   order.Status,
+			UpdateAt: &order.UpdateAt,
+		}
+		return ch, nil
 	}
 
 	go func() {
@@ -156,12 +222,23 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 				order.Status = model.OrderStatusProcessing[idx]
 				order.UpdateAt = time.Now()
 				idx++
-				orderUpdated, err := s.repo.OrderRepo.UpdateOrder(ctx, order.ID, *order)
+				orderUpdated, err := s.repo.OrderRepo.UpdateOrder(ctx, order.ID, order)
 				if err != nil {
-					s.l.Error(method, err.Error(), err, request.UserId, request.OrderId)
+					s.l.Error(
+						layer, method,
+						err.Error(), err,
+						"user_id", request.UserId,
+						"order_id", request.OrderId,
+					)
 					return
 				}
-				s.l.Debug(method, "update new order status", request.UserId, request.OrderId)
+				s.l.Debug(
+					layer, method,
+					"update new order status",
+					"user_id", request.UserId,
+					"order_id", request.OrderId,
+				)
+
 				ch <- &dto.GetOrderStatusResponse{
 					Status:   orderUpdated.Status,
 					UpdateAt: &orderUpdated.UpdateAt,

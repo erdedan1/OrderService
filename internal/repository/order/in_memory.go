@@ -12,56 +12,85 @@ import (
 	"github.com/google/uuid"
 )
 
-type Repo struct {
+type InMemoryRepo struct {
 	Orders map[uuid.UUID]*model.Order
 	mu     *sync.RWMutex
 	l      log.Logger
 }
 
-func NewRepo(logger log.Logger) *Repo {
-	return &Repo{
+func NewInMemoryRepo(logger log.Logger) *InMemoryRepo {
+	return &InMemoryRepo{
 		Orders: make(map[uuid.UUID]*model.Order),
 		mu:     &sync.RWMutex{},
-		l:      logger.Layer("Order.Repository"),
+		l:      logger,
 	}
 }
 
-func (r *Repo) CreateOrder(ctx context.Context, order model.Order) (*model.Order, *errors.CustomError) {
+const layerInMemory = "OrderInMemoryRepo"
+
+func (r *InMemoryRepo) CreateOrder(ctx context.Context, order *model.Order) (*model.Order, *errors.CustomError) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	order.ID = uuid.New()
-	r.Orders[order.ID] = &order
+	r.Orders[order.ID] = order
 
-	r.l.Debug("CreateOrder", "order success created", order.ID)
+	r.l.Debug(
+		layerInMemory,
+		"CreateOrder",
+		"order success created",
+		"order_id", order.ID,
+	)
 
-	return &order, nil
+	return order, nil
 }
 
-func (r *Repo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, *errors.CustomError) {
+func (r *InMemoryRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, *errors.CustomError) {
 	const method = "GetOrder"
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	if o, found := r.Orders[id]; found {
-		r.l.Debug(method, "get order info", id)
+		r.l.Debug(
+			layerInMemory,
+			method,
+			"get order info",
+			"uorder_id", id,
+		)
 		return o, nil
 	}
 
-	r.l.Error(method, "order not found", errs.ErrOrderNotFound, id)
+	r.l.Error(
+		layerInMemory, method,
+		"order not found",
+		errs.ErrOrderNotFound,
+		"order_id", id,
+	)
 
 	return nil, errs.ErrOrderNotFound
 }
 
-func (r *Repo) UpdateOrder(ctx context.Context, id uuid.UUID, order model.Order) (*model.Order, *errors.CustomError) {
+func (r *InMemoryRepo) UpdateOrder(ctx context.Context, id uuid.UUID, order *model.Order) (*model.Order, *errors.CustomError) {
 	const method = "UpdateOrder"
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if o, found := r.Orders[id]; found {
-		r.l.Debug(method, "order success updated", id)
+		r.l.Debug(
+			layerInMemory,
+			method,
+			"order success updated",
+			"order_id", id,
+			"user_id", order.UserId,
+		)
 		return o.Update(order), nil
 	}
 
-	r.l.Error(method, "not found order", errs.ErrOrderNotFound, id)
+	r.l.Error(
+		layerInMemory,
+		method,
+		"not found order",
+		errs.ErrOrderNotFound,
+		"order_id", id,
+	)
 
 	return nil, errs.ErrOrderNotFound
 }

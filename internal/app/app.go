@@ -39,20 +39,22 @@ func New(cfg *config.Config) *App {
 	}
 	return &App{
 		cfg: cfg,
-		L:   logger.Layer("App"),
+		L:   logger,
 	}
 }
 
+const layer = "App"
+
 func (a *App) Start() error {
 	const method = "Start"
-	a.L.Info(method, "starting service")
+	a.L.Info(layer, method, "starting service")
 	driver, clients, err := spot_instrument_service.New(a.cfg)
 	if err != nil {
 		return err
 	}
 
 	redisClient := cache.NewRedisClient(a.cfg)
-	repos := usecase.NewRepositories(orderRepo.NewRepo(a.L), user.NewRepo(a.L), market.NewMarketsCache(redisClient, a.L))
+	repos := usecase.NewRepositories(orderRepo.NewInMemoryRepo(a.L), user.NewRepo(a.L), market.NewMarketsCache(redisClient, a.L))
 	srvs := usecase.NewServices(orderSrv.New(repos, a.L, driver))
 
 	go func() {
@@ -61,18 +63,18 @@ func (a *App) Start() error {
 		}
 	}()
 
-	a.L.Info(method, "service work")
+	a.L.Info(layer, method, "service work")
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	a.L.Info(method, "waiting for shutdown signal")
+	a.L.Info(layer, method, "waiting for shutdown signal")
 	<-quit
-	a.L.Info(method, "shutdown signal received")
+	a.L.Info(layer, method, "shutdown signal received")
 	err = a.mustCloseConnectionWithGRPCClients(clients)
 	if err != nil {
-		a.L.Error(method, "failed to close connection with grpc clients", err)
+		a.L.Error(layer, method, "failed to close connection with grpc clients", err)
 	}
 	a.stopGRPCServer()
-	a.L.Info(method, "service stopped gracefully")
+	a.L.Info(layer, method, "service stopped gracefully")
 	return nil
 }
 
@@ -93,13 +95,13 @@ func (a *App) startGRPCServer(usecase usecase.Services) error {
 
 	lis, err := net.Listen("tcp", a.cfg.GRPCServer.Address)
 	if err != nil {
-		a.L.Error(method, "failed to listen: %v", err)
+		a.L.Error(layer, method, "failed to listen: %v", err)
 		return err
 	}
 
 	err = grpcServer.Serve(lis)
 	if err != nil {
-		a.L.Error(method, "grpc serve error", err)
+		a.L.Error(layer, method, "grpc serve error", err)
 		return err
 	}
 	return nil
@@ -108,14 +110,14 @@ func (a *App) startGRPCServer(usecase usecase.Services) error {
 func (a *App) stopGRPCServer() {
 	const method = "stopGRPCServer"
 	a.grpcServer.GracefulStop()
-	a.L.Info(method, "grpc server stopped gracefully")
+	a.L.Info(layer, method, "grpc server stopped gracefully")
 }
 
 func (a *App) mustCloseConnectionWithGRPCClients(clients []grpc_client.IGRPCClient) error {
 	const method = "mustCloseConnectionWithGRPCClients"
 	for _, client := range clients {
 		if err := client.Close(); err != nil {
-			a.L.Error(method, "failed to close client", err)
+			a.L.Error(layer, method, "failed to close client", err)
 		}
 	}
 

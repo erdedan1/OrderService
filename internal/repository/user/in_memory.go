@@ -23,7 +23,7 @@ func NewRepo(logger log.Logger) *Repo {
 	repo := &Repo{
 		Users: make(map[uuid.UUID]model.User),
 		mu:    &sync.RWMutex{},
-		l:     logger.Layer("User.Repository"),
+		l:     logger,
 	}
 	users := []model.User{
 		{
@@ -53,11 +53,13 @@ func NewRepo(logger log.Logger) *Repo {
 	return repo
 }
 
+const layer = "UserInMemoryRepo"
+
 func (r *Repo) CreateUser(ctx context.Context, user model.User) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.l.Debug("CreateUser", "user success created")
+	r.l.Debug(layer, "CreateUser", "user success created")
 
 	r.Users[user.ID] = user
 }
@@ -68,11 +70,15 @@ func (r *Repo) GetUserById(ctx context.Context, id uuid.UUID) (*model.User, *err
 	defer r.mu.RUnlock()
 
 	if u, found := r.Users[id]; found {
-		r.l.Debug(method, "found user", id)
+		r.l.Debug(
+			method,
+			"found user",
+			"order_id", id,
+		)
 		return &u, nil
 	}
 
-	r.l.Error(method, "user not found", errs.ErrUserNotFound)
+	r.l.Error(layer, method, "user not found", errs.ErrUserNotFound)
 
 	return nil, errs.ErrUserNotFound
 }

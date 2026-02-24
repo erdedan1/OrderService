@@ -12,9 +12,9 @@ import (
 )
 
 type OrderRepo interface {
-	CreateOrder(ctx context.Context, order model.Order) (*model.Order, *errors.CustomError)
+	CreateOrder(ctx context.Context, order *model.Order) (*model.Order, *errors.CustomError)
 	GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, *errors.CustomError)
-	UpdateOrder(ctx context.Context, id uuid.UUID, order model.Order) (*model.Order, *errors.CustomError)
+	UpdateOrder(ctx context.Context, id uuid.UUID, order *model.Order) (*model.Order, *errors.CustomError)
 }
 
 type UserRepo interface {

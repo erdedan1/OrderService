@@ -20,7 +20,7 @@ type Order struct {
 	DeletedAt time.Time
 }
 
-func (o *Order) Update(order Order) *Order {
+func (o *Order) Update(order *Order) *Order {
 	o.UserId = order.UserId
 	o.MarketId = order.MarketId
 	o.Quantity = order.Quantity
