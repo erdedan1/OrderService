@@ -9,24 +9,22 @@ import (
 	errors "github.com/erdedan1/shared/errs"
 )
 
-type marketDriver struct {
+type marketService struct {
 	client pb.MarketServiceClient
 }
 
-func NewMarketDriver(client pb.MarketServiceClient) *marketDriver {
-	return &marketDriver{
+func NewMarketService(client pb.MarketServiceClient) *marketService {
+	return &marketService{
 		client: client,
 	}
 }
 
-func (s *marketDriver) ViewMarketsByRoles(
-	ctx context.Context,
-	req *dto.ViewMarketsRequest,
-) ([]dto.ViewMarketsResponse, *errors.CustomError) {
+func (s *marketService) ViewMarketsByRoles(ctx context.Context, req *dto.ViewMarketsRequest) ([]dto.ViewMarketsResponse, *errors.CustomError) {
 	resp, err := s.client.ViewMarketsByRoles(ctx, req.DtoToProto())
 	if err != nil {
 		return nil, errs.New(errs.UNAVAILABLE, err.Error())
 	}
+
 	marketsResp := make([]dto.ViewMarketsResponse, 0, len(resp.Markets))
 	for _, m := range resp.Markets {
 		dtoM, err := dto.NewViewMarketsResponse(m)
@@ -35,5 +33,6 @@ func (s *marketDriver) ViewMarketsByRoles(
 		}
 		marketsResp = append(marketsResp, *dtoM)
 	}
+
 	return marketsResp, nil
 }

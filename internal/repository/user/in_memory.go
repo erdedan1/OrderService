@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// тут трейсы как будто бы тоже закинуть нужно но это нигде не используется так то
 type Repo struct {
 	Users map[uuid.UUID]model.User
 	mu    *sync.RWMutex

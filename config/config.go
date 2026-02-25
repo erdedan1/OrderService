@@ -15,8 +15,8 @@ type Config struct {
 }
 
 type InfrastructureConfig struct {
-	RedisConfig RedisConfig `validate:"required"`
-	Log_LVL     string      `env:"LOG_LVL" validate:"required"`
+	RedisConfig   RedisConfig   `validate:"required"`
+	Observability Observability `validate:"required"`
 }
 
 type GRPCApiConfig struct {

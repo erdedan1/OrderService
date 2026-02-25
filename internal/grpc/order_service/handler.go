@@ -7,61 +7,135 @@ import (
 	"OrderService/internal/usecase"
 
 	pb "github.com/erdedan1/protocol/proto/order_service/gen"
-	"google.golang.org/grpc/codes"
+	log "github.com/erdedan1/shared/logger"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	grpc_codes "google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type Service struct {
-	srvs usecase.Services
+type Handler struct {
+	srvs   usecase.Services
+	l      log.Logger
+	tracer trace.Tracer
+
 	pb.UnimplementedOrderServiceServer
 }
 
-func New(srvs usecase.Services) *Service {
-	return &Service{
-		srvs: srvs,
+func New(srvs usecase.Services, l log.Logger) *Handler {
+	return &Handler{
+		srvs:   srvs,
+		l:      l,
+		tracer: otel.Tracer("order-service/MarketHandler"),
 	}
 }
 
-func (s *Service) CreateOrder(ctx context.Context, request *pb.CreateOrderRequest) (*pb.CreateOrderResponse, error) {
+const layer = "MarketHandler"
+
+func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderRequest) (*pb.CreateOrderResponse, error) {
+	const method = "GetOrder"
+
+	ctx, span := h.tracer.Start(ctx, "MarketHandler.CreateOrder")
+	defer span.End()
+
 	requestDto, err := dto.NewCreateOrderRequest(request)
 	if err != nil {
-		return nil, status.Error(codes.Code(err.Code), err.Message)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Message)
+
+		h.l.Error(
+			layer, method,
+			err.Error(), err,
+		)
+		return nil, status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
 
-	order, err := s.srvs.OrderService.CreateOrder(ctx, requestDto)
+	order, err := h.srvs.OrderService.CreateOrder(ctx, requestDto)
 	if err != nil {
-		return nil, status.Error(codes.Code(err.Code), err.Message)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Message)
+
+		h.l.Error(
+			layer, method,
+			err.Error(), err,
+		)
+		return nil, status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
+
+	span.SetStatus(codes.Ok, "order success created")
 
 	return order.DtoToProto(), nil
 }
 
-func (s *Service) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatusRequest) (*pb.GetOrderStatusResponse, error) {
+func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatusRequest) (*pb.GetOrderStatusResponse, error) {
+	const method = "GetOrderStatus"
+
+	ctx, span := h.tracer.Start(ctx, "MarketHandler.GetOrderStatus")
+	defer span.End()
+
 	requestDto, err := dto.NewGetOrderStatusRequest(request)
 	if err != nil {
-		return nil, status.Error(codes.Code(err.Code), err.Message)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Message)
+
+		h.l.Error(
+			layer, method,
+			err.Error(), err,
+		)
+		return nil, status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
 
-	order, err := s.srvs.OrderService.GetOrderStatus(ctx, requestDto)
+	order, err := h.srvs.OrderService.GetOrderStatus(ctx, requestDto)
 	if err != nil {
-		return nil, status.Error(codes.Code(err.Code), err.Message)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Message)
+
+		h.l.Error(
+			layer, method,
+			err.Error(), err,
+		)
+		return nil, status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
+
+	span.SetStatus(codes.Ok, "get order success")
 
 	return order.DtoToProto(), nil
 }
 
-func (s *Service) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream pb.OrderService_SubscribeOrderStatusServer) error {
+func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream pb.OrderService_SubscribeOrderStatusServer) error {
+	const method = "SubscribeOrderStatus"
+
+	ctx := stream.Context()
+
+	ctx, span := h.tracer.Start(ctx, "MarketHandler.SubscribeOrderStatus")
+	defer span.End()
+
 	requestDto, err := dto.NewGetOrderStatusRequest(request)
 	if err != nil {
-		return status.Error(codes.Code(err.Code), err.Message)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Message)
+
+		h.l.Error(
+			layer, method,
+			err.Error(), err,
+		)
+		return status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
 
 	ctx, cancel := context.WithCancel(stream.Context())
 	defer cancel()
 
-	ch, err := s.srvs.OrderService.SubscribeOrderStatus(ctx, requestDto)
+	ch, err := h.srvs.OrderService.SubscribeOrderStatus(ctx, requestDto)
 	if err != nil {
-		return status.Error(codes.Code(err.Code), err.Message)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Message)
+
+		h.l.Error(
+			layer, method,
+			err.Error(), err,
+		)
+		return status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
 
 	for {
@@ -79,6 +153,13 @@ func (s *Service) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 				UpdatedAt: order.DtoToProto().UpdatedAt,
 			})
 			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+
+				h.l.Error(
+					layer, method,
+					err.Error(), err,
+				)
 				return err
 			}
 		}

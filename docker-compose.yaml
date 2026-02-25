@@ -1,3 +1,82 @@
+# version: "3.9"
+
+# services:
+#   order:
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#       args:
+#         SERVICE_NAME: OrderService
+#     env_file:
+#       - ./.env
+#     ports:
+#       - "50052:50052"
+#       - "9092:9092"    
+#     depends_on:
+#       - redis
+#       - postgres
+#       - jaeger
+#     environment:
+#       - DB_HOST=postgres
+#       - DB_PORT=5432
+#       - REDIS_HOST=redis
+#       - REDIS_PORT=6379
+#       - GRPC_API_SPOT_INSTRUMENT_SERVICE_HOST=market:50051
+#       - TELEMETRY_HOST=jaeger
+#       - TELEMETRY_PORT=6831
+#     networks:
+#       - default
+#       - shared-net
+
+#   redis:
+#     image: redis:7-alpine
+#     ports:
+#       - "6379:6379"
+#     restart: always
+#     volumes:
+#       - redis_data:/data
+#     networks:
+#       - default
+
+#   postgres:
+#     image: postgres:16-alpine
+#     restart: always
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_DB: order_db
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres"]
+#       interval: 5s
+#       timeout: 5s
+#       retries: 5
+#     networks:
+#       - default
+
+#   jaeger:
+#     image: jaegertracing/all-in-one:1.49
+#     ports:
+#       - "16686:16686"  
+#       - "6831:6831/udp" 
+#       - "6832:6832/udp" 
+#       - "14250:14250"   
+#       - "14268:14268"   
+#     networks:
+#       - shared-net
+#     restart: always
+
+# volumes:
+#   redis_data:
+#   postgres_data:
+
+# networks:
+#   shared-net:
+#     external: true
+
 version: "3.9"
 
 services:
@@ -11,16 +90,11 @@ services:
       - ./.env
     ports:
       - "50052:50052"
-      - "9092:9092"    
+      - "9092:9092"
     depends_on:
       - redis
       - postgres
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - GRPC_API_SPOT_INSTRUMENT_SERVICE_HOST=market:50051
+      - jaeger
     networks:
       - default
       - shared-net
@@ -53,6 +127,15 @@ services:
       retries: 5
     networks:
       - default
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.49
+    ports:
+      - "16686:16686"  # UI
+      - "4317:4317"    # OTLP gRPC collector
+    networks:
+      - shared-net
+    restart: always
 
 volumes:
   redis_data:
