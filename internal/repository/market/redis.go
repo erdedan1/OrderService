@@ -21,14 +21,14 @@ import (
 
 type redisMarketsCache struct {
 	client cache.RedisClient
-	l      log.Logger
+	log    log.Logger
 	tracer trace.Tracer
 }
 
-func NewMarketsCache(client cache.RedisClient, l log.Logger) *redisMarketsCache {
+func NewMarketsCache(client cache.RedisClient, log log.Logger) *redisMarketsCache {
 	return &redisMarketsCache{
 		client: client,
-		l:      l,
+		log:    log,
 		tracer: otel.Tracer("order-service/RedisCacheRepo"),
 	}
 }
@@ -49,7 +49,7 @@ func (c *redisMarketsCache) Set(ctx context.Context, key string, value []dto.Vie
 		span.RecordError(errs.ErrFailedSerializeRedis)
 		span.SetStatus(codes.Error, errs.ErrFailedSerializeRedis.Message)
 
-		c.l.Error(layer, method, "failed to marshal data", err)
+		c.log.Error(layer, method, "failed to marshal data", err)
 		return errs.ErrFailedSerializeRedis
 	}
 
@@ -58,13 +58,13 @@ func (c *redisMarketsCache) Set(ctx context.Context, key string, value []dto.Vie
 		span.RecordError(errs.ErrUnavailableRedis)
 		span.SetStatus(codes.Error, errs.ErrUnavailableRedis.Message)
 
-		c.l.Error(layer, method, "failed to set market", err)
+		c.log.Error(layer, method, "failed to set market", err)
 		return errs.ErrUnavailableRedis
 	}
 
 	span.SetStatus(codes.Ok, "market success set")
 
-	c.l.Debug(layer, method, "success set market cache")
+	c.log.Debug(layer, method, "success set market cache")
 
 	return nil
 }
@@ -84,7 +84,7 @@ func (c *redisMarketsCache) Get(ctx context.Context, key string) ([]dto.ViewMark
 		if errors.Is(err, redis.Nil) {
 			span.SetStatus(codes.Ok, "markets not found in redis cache")
 
-			c.l.Debug(
+			c.log.Debug(
 				method,
 				"not found market in cache",
 				"error", err.Error())
@@ -93,7 +93,7 @@ func (c *redisMarketsCache) Get(ctx context.Context, key string) ([]dto.ViewMark
 		span.RecordError(errs.ErrUnavailableDataRedis)
 		span.SetStatus(codes.Error, errs.ErrUnavailableDataRedis.Message)
 
-		c.l.Error(layer, method, "failed to marshal data", err)
+		c.log.Error(layer, method, "failed to marshal data", err)
 		return nil, errs.ErrUnavailableDataRedis
 	}
 
@@ -102,13 +102,13 @@ func (c *redisMarketsCache) Get(ctx context.Context, key string) ([]dto.ViewMark
 		span.RecordError(errs.ErrFailedDeserializeRedis)
 		span.SetStatus(codes.Error, errs.ErrFailedDeserializeRedis.Message)
 
-		c.l.Error(layer, method, "failed to unmarshal data", err)
+		c.log.Error(layer, method, "failed to unmarshal data", err)
 		return nil, errs.ErrFailedDeserializeRedis
 	}
 
 	span.SetStatus(codes.Ok, "market success get in cache redis")
 
-	c.l.Debug(layer, method, "success get market in cache redis")
+	c.log.Debug(layer, method, "success get market in cache redis")
 
 	return result, nil
 }
@@ -128,13 +128,13 @@ func (c *redisMarketsCache) Del(ctx context.Context, key string) *error.CustomEr
 		span.RecordError(errs.ErrDeleteRedis)
 		span.SetStatus(codes.Error, errs.ErrDeleteRedis.Message)
 
-		c.l.Error(layer, method, "failed to delete market in cache", err)
+		c.log.Error(layer, method, "failed to delete market in cache", err)
 		return errs.ErrDeleteRedis
 	}
 
 	span.SetStatus(codes.Ok, "market success deleted in cache redis")
 
-	c.l.Debug(layer, method, "success delete market in cache redis")
+	c.log.Debug(layer, method, "success delete market in cache redis")
 
 	return nil
 }

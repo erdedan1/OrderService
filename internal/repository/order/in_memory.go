@@ -19,7 +19,7 @@ import (
 type InMemoryRepo struct {
 	Orders map[uuid.UUID]*model.Order
 	mu     *sync.RWMutex
-	l      log.Logger
+	log    log.Logger
 	tracer trace.Tracer
 }
 
@@ -27,7 +27,7 @@ func NewInMemoryRepo(logger log.Logger) *InMemoryRepo {
 	return &InMemoryRepo{
 		Orders: make(map[uuid.UUID]*model.Order),
 		mu:     &sync.RWMutex{},
-		l:      logger,
+		log:    logger,
 		tracer: otel.Tracer("order-service/InMemoryRepo"),
 	}
 }
@@ -50,7 +50,7 @@ func (r *InMemoryRepo) CreateOrder(ctx context.Context, order *model.Order) (*mo
 
 	span.SetStatus(codes.Ok, "order success created")
 
-	r.l.Debug(
+	r.log.Debug(
 		layerInMemory,
 		"CreateOrder",
 		"order success created",
@@ -72,7 +72,7 @@ func (r *InMemoryRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order
 	if o, found := r.Orders[id]; found {
 		span.SetStatus(codes.Ok, "get order success")
 
-		r.l.Debug(
+		r.log.Debug(
 			layerInMemory,
 			method,
 			"get order info",
@@ -84,7 +84,7 @@ func (r *InMemoryRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order
 	span.RecordError(errs.ErrOrderNotFound)
 	span.SetStatus(codes.Error, errs.ErrOrderNotFound.Message)
 
-	r.l.Error(
+	r.log.Error(
 		layerInMemory, method,
 		"order not found",
 		errs.ErrOrderNotFound,
@@ -106,7 +106,7 @@ func (r *InMemoryRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 
 		span.SetStatus(codes.Ok, "order success updated")
 
-		r.l.Debug(
+		r.log.Debug(
 			layerInMemory,
 			method,
 			"order success updated",
@@ -120,7 +120,7 @@ func (r *InMemoryRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 	span.RecordError(errs.ErrOrderNotFound)
 	span.SetStatus(codes.Error, errs.ErrOrderNotFound.Message)
 
-	r.l.Error(
+	r.log.Error(
 		layerInMemory,
 		method,
 		"not found order",

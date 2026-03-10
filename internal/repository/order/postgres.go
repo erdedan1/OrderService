@@ -22,11 +22,11 @@ import (
 
 type PostgresRepo struct {
 	db     *sqlx.DB
-	l      log.Logger
+	log    log.Logger
 	tracer trace.Tracer
 }
 
-func NewPostgresRepo(ctx context.Context, l log.Logger, config config.PostgresDB) (*PostgresRepo, *errorz.CustomError) {
+func NewPostgresRepo(ctx context.Context, log log.Logger, config config.PostgresDB) (*PostgresRepo, *errorz.CustomError) {
 	db, err := connection.New(ctx, config)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func NewPostgresRepo(ctx context.Context, l log.Logger, config config.PostgresDB
 
 	return &PostgresRepo{
 		db:     db,
-		l:      l,
+		log:    log,
 		tracer: otel.Tracer("order-service/PostgresRepo"),
 	}, nil
 }
@@ -59,7 +59,7 @@ func (r *PostgresRepo) CreateOrder(ctx context.Context, order *model.Order) (*mo
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 
-		r.l.Error(
+		r.log.Error(
 			layerPostgres,
 			method,
 			err.Error(), err,
@@ -93,7 +93,7 @@ func (r *PostgresRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order
 			span.RecordError(errs.ErrOrderNotFound)
 			span.SetStatus(codes.Error, errs.ErrOrderNotFound.Message)
 
-			r.l.Error(
+			r.log.Error(
 				layerPostgres,
 				method,
 				err.Error(), err,
@@ -105,7 +105,7 @@ func (r *PostgresRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 
-		r.l.Error(
+		r.log.Error(
 			layerPostgres,
 			method,
 			err.Error(), err,
@@ -140,7 +140,7 @@ func (r *PostgresRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 		span.RecordError(errs.ErrOrderNotFound)
 		span.SetStatus(codes.Error, errs.ErrOrderNotFound.Message)
 
-		r.l.Error(
+		r.log.Error(
 			layerPostgres,
 			method,
 			err.Error(), err,
@@ -154,7 +154,7 @@ func (r *PostgresRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 
-		r.l.Error(
+		r.log.Error(
 			layerPostgres,
 			method,
 			err.Error(), err,
@@ -166,7 +166,7 @@ func (r *PostgresRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 		span.RecordError(errs.ErrOrderNotFound)
 		span.SetStatus(codes.Error, errs.ErrOrderNotFound.Message)
 
-		r.l.Error(
+		r.log.Error(
 			layerPostgres,
 			method,
 			errs.ErrOrderNotFound.Message,

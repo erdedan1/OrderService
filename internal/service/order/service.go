@@ -21,7 +21,7 @@ import (
 type Service struct {
 	repo   *usecase.Repositories
 	pb     usecase.GRPCServices
-	l      log.Logger
+	log    log.Logger
 	tracer trace.Tracer
 }
 
@@ -29,7 +29,7 @@ func New(repo *usecase.Repositories, log log.Logger, pb usecase.GRPCServices) *S
 	return &Service{
 		repo:   repo,
 		pb:     pb,
-		l:      log,
+		log:    log,
 		tracer: otel.Tracer("order-service/Service"),
 	}
 }
@@ -51,7 +51,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 
-		s.l.Error(
+		s.log.Error(
 			layer, method,
 			err.Error(), err,
 			"user_id", request.UserID,
@@ -62,7 +62,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "no access rights")
 
-		s.l.Error(
+		s.log.Error(
 			layer, method,
 			"user has no acces to market",
 			errs.ErrUserHasNoAccessToMarket,
@@ -77,7 +77,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 
-		s.l.Error(
+		s.log.Error(
 			layer, method,
 			err.Error(), err,
 		)
@@ -89,7 +89,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 
-			s.l.Error(layer, method,
+			s.log.Error(layer, method,
 				err.Error(), err,
 				"user_id", request.UserID,
 			)
@@ -99,7 +99,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "not found markets")
 
-			s.l.Error(
+			s.log.Error(
 				layer, method,
 				errs.ErrMarketNotFound.Message,
 				errs.ErrMarketNotFound,
@@ -112,7 +112,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 
-			s.l.Error(
+			s.log.Error(
 				layer, method,
 				err.Message, err,
 				"user_id", request.UserID,
@@ -126,7 +126,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 
-		s.l.Error(
+		s.log.Error(
 			layer, method,
 			err.Error(), err,
 			"user_id", request.UserID,
@@ -139,7 +139,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 
-		s.l.Error(
+		s.log.Error(
 			layer, method,
 			err.Error(), err,
 			"user_id", request.UserID,
@@ -149,7 +149,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 
 	span.SetStatus(codes.Ok, "order success created")
 
-	s.l.Debug(layer, method, "order success created")
+	s.log.Debug(layer, method, "order success created")
 
 	return &dto.CreateOrderResponse{
 		ID:     order.ID,
@@ -173,7 +173,7 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 
-		s.l.Error(
+		s.log.Error(
 			layer, method,
 			err.Error(), err,
 			"user_id", request.UserID,
@@ -186,7 +186,7 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 		span.RecordError(errs.ErrInvalidUserID)
 		span.SetStatus(codes.Error, errs.ErrInvalidUserID.Message)
 
-		s.l.Error(
+		s.log.Error(
 			layer,
 			method,
 			errs.ErrInvalidUserID.Message,
@@ -199,7 +199,7 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 
 	span.SetStatus(codes.Ok, "get order success")
 
-	s.l.Debug(
+	s.log.Debug(
 		layer,
 		method,
 		"get order info",
@@ -228,7 +228,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 
-		s.l.Error(
+		s.log.Error(
 			layer, method,
 			err.Error(), err,
 			"order_id", request.OrderID,
@@ -241,7 +241,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		span.RecordError(errs.ErrInvalidUserID)
 		span.SetStatus(codes.Error, errs.ErrInvalidUserID.Message)
 
-		s.l.Error(
+		s.log.Error(
 			layer, method,
 			errs.ErrInvalidUserID.Message,
 			errs.ErrInvalidUserID,
@@ -256,7 +256,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 
 		span.SetStatus(codes.Ok, "order already completed and closed")
 
-		s.l.Debug(
+		s.log.Debug(
 			layer, method,
 			"order already completed and closed",
 			"user_id", request.UserID,
@@ -294,7 +294,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 					span.RecordError(err)
 					span.SetStatus(codes.Error, err.Message)
 
-					s.l.Error(
+					s.log.Error(
 						layer, method,
 						err.Error(), err,
 						"user_id", request.UserID,
@@ -302,7 +302,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 					)
 					return
 				}
-				s.l.Debug(
+				s.log.Debug(
 					layer, method,
 					"update new order status",
 					"user_id", request.UserID,
