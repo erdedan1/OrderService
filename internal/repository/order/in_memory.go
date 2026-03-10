@@ -114,6 +114,7 @@ func (r *InMemoryRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 			"order success updated",
 			"order_id", id,
 			"user_id", o.UserID,
+			"order_status", o.Status,
 		)
 		o.Status = status
 		o.UpdatedAt = time.Now()

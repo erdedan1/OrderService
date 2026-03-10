@@ -2,7 +2,6 @@ package order
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"OrderService/internal/dto"
@@ -12,6 +11,7 @@ import (
 
 	errors "github.com/erdedan1/shared/errs"
 	log "github.com/erdedan1/shared/logger"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -163,16 +163,19 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		)
 		return nil, err
 	}
-
-	if s.orderStatusPublisher != nil {
-		if publishErr := s.orderStatusPublisher.PublishOrderStatus(ctx, order.ID, order.Status); publishErr != nil {
-			s.log.Error(layer, method, publishErr.Error(), publishErr, "order_id", order.ID, "status", order.Status)
-		}
-	}
+	//todo сделать метод апдейт который будет обновлять статус и закидывать его в паблишер
+	//сделать горутину которая будет тыкать каждые 10 сек с новым статусом эту штуку
+	// if s.orderStatusPublisher != nil {
+	// 	if publishErr := s.orderStatusPublisher.PublishOrderStatus(ctx, order.ID, order.Status); publishErr != nil {
+	// 		s.log.Error(layer, method, publishErr.Error(), publishErr, "order_id", order.ID, "status", order.Status)
+	// 	}
+	// }
 
 	span.SetStatus(codes.Ok, "order success created")
 
 	s.log.Debug(layer, method, "order success created")
+
+	go s.publishOrderLifecycle(context.WithoutCancel(ctx), order.ID, order.Status)
 
 	return &dto.CreateOrderResponse{
 		ID:     order.ID,
@@ -307,10 +310,10 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		s.log.Error(layer, method, err.Error(), err, "order_id", request.OrderID, "user_id", request.UserID)
 		return nil, err
 	}
-	fmt.Println(order.UpdatedAt, "IJIJI")
+
 	go func(initialStatus model.OrderStatus, initialUpdatedAt time.Time) {
 		defer close(ch)
-		fmt.Println(initialStatus, initialUpdatedAt, "1111111111")
+
 		ch <- &dto.GetOrderStatusResponse{Status: initialStatus.ToString(), UpdatedAt: &initialUpdatedAt}
 		lastStatus := initialStatus
 
@@ -358,4 +361,75 @@ func createOrderRequestToModel(request *dto.CreateOrderRequest) (*model.Order, *
 		Price:     price,
 		CreatedAt: time.Now(),
 	}, nil
+}
+
+func (s *Service) UpdateOrderStatus(ctx context.Context, orderID uuid.UUID, status model.OrderStatus) *errors.CustomError {
+	const method = "UpdateOrderStatus"
+
+	if updateErr := s.orderRepo.UpdateOrderStatus(ctx, orderID, status); updateErr != nil {
+		s.log.Error(layer, method, updateErr.Error(), updateErr, "order_id", orderID, "status", status)
+		return updateErr
+	}
+
+	if s.orderStatusPublisher != nil {
+		if publishErr := s.orderStatusPublisher.PublishOrderStatus(ctx, orderID, status); publishErr != nil {
+			s.log.Error(layer, method, publishErr.Error(), publishErr, "order_id", orderID, "status", status)
+			return publishErr
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) publishOrderLifecycle(ctx context.Context, orderID uuid.UUID, initialStatus model.OrderStatus) {
+	const method = "publishOrderLifecycle"
+
+	s.log.Debug(layer, method, "start new sobitie")
+
+	status := initialStatus
+	for {
+		nextStatus, hasNext := nextOrderStatus(status)
+		if !hasNext {
+			return
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(5 * time.Second):
+		}
+
+		if updateErr := s.UpdateOrderStatus(ctx, orderID, nextStatus); updateErr != nil {
+			return
+		}
+
+		status = nextStatus
+	}
+}
+
+func nextOrderStatus(current model.OrderStatus) (model.OrderStatus, bool) {
+	switch current {
+	case model.StatusCreated:
+		return model.StatusPending, true
+	case model.StatusPending:
+		return model.StatusWaitSeller, true
+	case model.StatusWaitSeller:
+		return model.StatusPaid, true
+	case model.StatusPaid:
+		return model.StatusOnHold, true
+	case model.StatusOnHold:
+		return model.StatusProcessing, true
+	case model.StatusProcessing:
+		return model.StatusPacked, true
+	case model.StatusPacked:
+		return model.StatusOutOfDelivery, true
+	case model.StatusOutOfDelivery:
+		return model.StatusOnTheWay, true
+	case model.StatusOnTheWay:
+		return model.StatusDelivered, true
+	case model.StatusDelivered:
+		return model.StatusClosed, true
+	default:
+		return current, false
+	}
 }
