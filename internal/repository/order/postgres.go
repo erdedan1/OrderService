@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"OrderService/config"
 	"OrderService/internal/connection"
@@ -131,11 +132,11 @@ func (r *PostgresRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 
 	query := `
 			UPDATE orders
-			SET status = $1
-			WHERE id = $2
+			SET status = $1, updated_at = $2
+			WHERE id = $3
 		`
 
-	res, err := r.db.ExecContext(ctx, query, status, id)
+	res, err := r.db.ExecContext(ctx, query, status, time.Now(), id)
 	if err != nil {
 		span.RecordError(errs.ErrOrderNotFound)
 		span.SetStatus(codes.Error, errs.ErrOrderNotFound.Message)

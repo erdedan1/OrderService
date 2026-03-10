@@ -34,60 +34,34 @@ const (
 	StatusOnTheWay      OrderStatus = "ORDER_STATUS_ON_THE_WAY"
 	StatusDelivered     OrderStatus = "ORDER_STATUS_DELIVERED"
 	StatusClosed        OrderStatus = "ORDER_STATUS_CLOSED"
+	StatusUnspecified   OrderStatus = "ORDER_STATUS_UNSPECIFIED"
 )
-
-var OrderStatusProcessing = []OrderStatus{
-	StatusCreated,
-	StatusPending,
-	StatusWaitSeller,
-	StatusPaid,
-	StatusOnHold,
-	StatusProcessing,
-	StatusPacked,
-	StatusOutOfDelivery,
-	StatusOnTheWay,
-	StatusDelivered,
-	StatusClosed,
-}
 
 func (o OrderStatus) ToString() string {
 	switch o {
 	case StatusCreated:
-		return "CREATED"
+		return "ORDER_STATUS_CREATED"
 	case StatusPending:
-		return "PENDING"
+		return "ORDER_STATUS_PENDING"
 	case StatusWaitSeller:
-		return "WAIT_SELLER"
+		return "ORDER_STATUS_WAIT_SELLER"
 	case StatusPaid:
-		return "PAID"
+		return "ORDER_STATUS_PAID"
 	case StatusOnHold:
-		return "ON_HOLD"
+		return "ORDER_STATUS_ON_HOLD"
 	case StatusProcessing:
-		return "PROCESSING"
+		return "ORDER_STATUS_PROCESSING"
 	case StatusPacked:
-		return "PACKED"
+		return "ORDER_STATUS_PACKED"
 	case StatusOutOfDelivery:
-		return "OUT_OF_DELIVERY"
+		return "ORDER_STATUS_OUT_OF_DELIVERY"
 	case StatusOnTheWay:
-		return "ON_THE_WAY"
+		return "ORDER_STATUS_ON_THE_WAY"
 	case StatusDelivered:
-		return "DELIVERED"
+		return "ORDER_STATUS_DELIVERED"
 	case StatusClosed:
-		return "CLOSED"
+		return "ORDER_STATUS_CLOSED"
 	default:
-		return "UNKNOWN"
+		return "ORDER_STATUS_UNSPECIFIED"
 	}
-}
-
-func NextOrderStatus(current OrderStatus) (OrderStatus, bool) {
-	for idx, status := range OrderStatusProcessing {
-		if status != current {
-			continue
-		}
-		if idx+1 >= len(OrderStatusProcessing) {
-			return current, false
-		}
-		return OrderStatusProcessing[idx+1], true
-	}
-	return StatusCreated, true
 }

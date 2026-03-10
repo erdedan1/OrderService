@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"sync"
+	"time"
 
 	errs "OrderService/internal/errors"
 	"OrderService/internal/model"
@@ -55,6 +56,7 @@ func (r *InMemoryRepo) CreateOrder(ctx context.Context, order *model.Order) (*mo
 		"CreateOrder",
 		"order success created",
 		"order_id", order.ID,
+		"order_status", order.Status,
 	)
 
 	return order, nil
@@ -114,6 +116,7 @@ func (r *InMemoryRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 			"user_id", o.UserID,
 		)
 		o.Status = status
+		o.UpdatedAt = time.Now()
 		return nil
 	}
 

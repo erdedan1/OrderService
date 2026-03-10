@@ -72,7 +72,7 @@ func (s *RedisSubscriber) SubscribeOrderStatus(ctx context.Context, orderID uuid
 				}
 
 				status := model.OrderStatus(msg.Payload)
-				if !isValidOrderStatus(status) {
+				if status == model.StatusUnspecified {
 					s.log.Error(layer, method, "invalid order status payload", errs.ErrInvalidArgument, "order_id", orderID, "payload", msg.Payload)
 					continue
 				}
@@ -88,13 +88,4 @@ func (s *RedisSubscriber) SubscribeOrderStatus(ctx context.Context, orderID uuid
 
 func orderStatusChannel(orderID uuid.UUID) string {
 	return "order:status:" + orderID.String()
-}
-
-func isValidOrderStatus(status model.OrderStatus) bool {
-	for _, st := range model.OrderStatusProcessing {
-		if st == status {
-			return true
-		}
-	}
-	return false
 }

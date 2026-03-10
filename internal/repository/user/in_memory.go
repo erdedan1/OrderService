@@ -72,6 +72,7 @@ func (r *Repo) GetUserById(ctx context.Context, id uuid.UUID) (*model.User, *err
 
 	if u, found := r.Users[id]; found {
 		r.l.Debug(
+			layer,
 			method,
 			"found user",
 			"order_id", id,

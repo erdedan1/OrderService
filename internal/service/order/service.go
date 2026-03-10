@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"OrderService/internal/dto"
@@ -229,7 +230,10 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 		"status", order.Status,
 	)
 
-	return &dto.GetOrderStatusResponse{Status: order.Status.ToString()}, nil
+	return &dto.GetOrderStatusResponse{
+		Status:    order.Status.ToString(),
+		UpdatedAt: new(time.Now()),
+	}, nil
 }
 
 func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrderStatusRequest) (<-chan *dto.GetOrderStatusResponse, *errors.CustomError) {
@@ -303,10 +307,10 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		s.log.Error(layer, method, err.Error(), err, "order_id", request.OrderID, "user_id", request.UserID)
 		return nil, err
 	}
-
+	fmt.Println(order.UpdatedAt, "IJIJI")
 	go func(initialStatus model.OrderStatus, initialUpdatedAt time.Time) {
 		defer close(ch)
-
+		fmt.Println(initialStatus, initialUpdatedAt, "1111111111")
 		ch <- &dto.GetOrderStatusResponse{Status: initialStatus.ToString(), UpdatedAt: &initialUpdatedAt}
 		lastStatus := initialStatus
 
