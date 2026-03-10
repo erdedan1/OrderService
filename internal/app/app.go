@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
 	"os/signal"
@@ -46,7 +47,7 @@ const layer = "App"
 func (a *App) Start(ctx context.Context) error {
 	const method = "Start"
 	tracer := otel.Tracer("order-service")
-	_, span := tracer.Start(ctx, "test-span")
+	_, span := tracer.Start(ctx, "service.start")
 	span.End()
 	a.log.Info(layer, method, "starting service")
 
@@ -68,20 +69,37 @@ func (a *App) Start(ctx context.Context) error {
 		a.log,
 	)
 
+	serverErrCh := make(chan error, 1)
+
 	go func() {
-		if err := a.startGRPCServer(orderService); err != nil {
-			os.Exit(1)
-		}
+		serverErrCh <- a.startGRPCServer(orderService)
 	}()
 
 	a.log.Info(layer, method, "service work")
+
 	quit := make(chan os.Signal, 1)
+
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(quit)
 	a.log.Info(layer, method, "waiting for shutdown signal")
-	<-quit
-	a.log.Info(layer, method, "shutdown signal received")
+
+	select {
+	case <-ctx.Done():
+		a.log.Info(layer, method, "context cancelled")
+	case sig := <-quit:
+		a.log.Info(layer, method, "shutdown signal received", "signal", sig.String())
+	case err := <-serverErrCh:
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 
 	a.stopGRPCServer()
+	if err := <-serverErrCh; err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+		return err
+	}
+
 	a.log.Info(layer, method, "service stopped gracefully")
 	return nil
 }
@@ -103,7 +121,7 @@ func (a *App) startGRPCServer(orderService usecase.OrderService) error {
 
 	lis, err := net.Listen("tcp", a.cfg.GRPCServer.Address)
 	if err != nil {
-		a.log.Error(layer, method, "failed to listen: %v", err)
+		a.log.Error(layer, method, "failed to listen", err)
 		return err
 	}
 
@@ -117,6 +135,9 @@ func (a *App) startGRPCServer(orderService usecase.OrderService) error {
 
 func (a *App) stopGRPCServer() {
 	const method = "stopGRPCServer"
+	if a.grpcServer == nil {
+		return
+	}
 	a.grpcServer.GracefulStop()
 	a.log.Info(layer, method, "grpc server stopped gracefully")
 }

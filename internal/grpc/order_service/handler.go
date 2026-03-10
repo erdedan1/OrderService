@@ -27,16 +27,16 @@ func New(orderService usecase.OrderService, log log.Logger) *Handler {
 	return &Handler{
 		orderService: orderService,
 		log:          log,
-		tracer:       otel.Tracer("order-service/MarketHandler"),
+		tracer:       otel.Tracer("order-service/OrderHandler"),
 	}
 }
 
-const layer = "MarketHandler"
+const layer = "OrderHandler"
 
 func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderRequest) (*pb.CreateOrderResponse, error) {
 	const method = "CreateOrder"
 
-	ctx, span := h.tracer.Start(ctx, "MarketHandler.CreateOrder")
+	ctx, span := h.tracer.Start(ctx, "OrderHandler.CreateOrder")
 	defer span.End()
 
 	requestDto, err := mapper.CreateOrderRequestFromProto(request)
@@ -71,7 +71,7 @@ func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderReques
 func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatusRequest) (*pb.GetOrderStatusResponse, error) {
 	const method = "GetOrderStatus"
 
-	ctx, span := h.tracer.Start(ctx, "MarketHandler.GetOrderStatus")
+	ctx, span := h.tracer.Start(ctx, "OrderHandler.GetOrderStatus")
 	defer span.End()
 
 	requestDto, err := mapper.GetOrderStatusRequestFromProto(request)
@@ -108,7 +108,7 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 
 	ctx := stream.Context()
 
-	ctx, span := h.tracer.Start(ctx, "MarketHandler.SubscribeOrderStatus")
+	ctx, span := h.tracer.Start(ctx, "OrderHandler.SubscribeOrderStatus")
 	defer span.End()
 
 	requestDto, err := mapper.GetOrderStatusRequestFromProto(request)
