@@ -19,12 +19,14 @@ import (
 )
 
 type Service struct {
-	orderRepo   usecase.OrderRepo
-	userRepo    usecase.UserRepo
-	marketCache usecase.MarketCacheRepo
-	marketSrv   usecase.MarketService
-	log         log.Logger
-	tracer      trace.Tracer
+	orderRepo             usecase.OrderRepo
+	userRepo              usecase.UserRepo
+	marketCache           usecase.MarketCacheRepo
+	marketSrv             usecase.MarketService
+	orderStatusSubscriber usecase.OrderStatusSubscriber
+	orderStatusPublisher  usecase.OrderStatusPublisher
+	log                   log.Logger
+	tracer                trace.Tracer
 }
 
 func New(
@@ -32,15 +34,19 @@ func New(
 	userRepo usecase.UserRepo,
 	marketCache usecase.MarketCacheRepo,
 	marketSrv usecase.MarketService,
+	orderStatusSubscriber usecase.OrderStatusSubscriber,
+	orderStatusPublisher usecase.OrderStatusPublisher,
 	log log.Logger,
 ) *Service {
 	return &Service{
-		orderRepo:   repo,
-		userRepo:    userRepo,
-		marketCache: marketCache,
-		marketSrv:   marketSrv,
-		log:         log,
-		tracer:      otel.Tracer("order-service/Service"),
+		orderRepo:             repo,
+		userRepo:              userRepo,
+		marketCache:           marketCache,
+		marketSrv:             marketSrv,
+		orderStatusSubscriber: orderStatusSubscriber,
+		orderStatusPublisher:  orderStatusPublisher,
+		log:                   log,
+		tracer:                otel.Tracer("order-service/Service"),
 	}
 }
 
@@ -157,6 +163,12 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		return nil, err
 	}
 
+	if s.orderStatusPublisher != nil {
+		if publishErr := s.orderStatusPublisher.PublishOrderStatus(ctx, order.ID, order.Status); publishErr != nil {
+			s.log.Error(layer, method, publishErr.Error(), publishErr, "order_id", order.ID, "status", order.Status)
+		}
+	}
+
 	span.SetStatus(codes.Ok, "order success created")
 
 	s.log.Debug(layer, method, "order success created")
@@ -264,6 +276,8 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	if order.Status == model.StatusClosed {
 		defer close(ch)
 
+		ch <- &dto.GetOrderStatusResponse{Status: order.Status.ToString(), UpdatedAt: &order.UpdatedAt}
+
 		span.SetStatus(codes.Ok, "order already completed and closed")
 
 		s.log.Debug(
@@ -272,59 +286,56 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 			"user_id", request.UserID,
 			"order_id", request.OrderID,
 		)
-		ch <- &dto.GetOrderStatusResponse{
-			Status:    order.Status.ToString(),
-			UpdatedAt: &order.UpdatedAt,
-		}
+
 		return ch, nil
 	}
 
-	go func() {
+	if s.orderStatusSubscriber == nil {
+		defer close(ch)
+		return ch, errs.ErrUnavailableRedis
+	}
+
+	statusCh, err := s.orderStatusSubscriber.SubscribeOrderStatus(ctx, request.OrderID)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Message)
+
+		s.log.Error(layer, method, err.Error(), err, "order_id", request.OrderID, "user_id", request.UserID)
+		return nil, err
+	}
+
+	go func(initialStatus model.OrderStatus, initialUpdatedAt time.Time) {
 		defer close(ch)
 
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
+		ch <- &dto.GetOrderStatusResponse{Status: initialStatus.ToString(), UpdatedAt: &initialUpdatedAt}
+		lastStatus := initialStatus
 
 		for {
 			select {
 			case <-ctx.Done():
 				return
-				//todo убрать все сделать другое
-			case <-ticker.C:
-				nextStatus, ok := model.NextOrderStatus(order.Status)
+			case status, ok := <-statusCh:
 				if !ok {
 					return
 				}
-				order.Status = nextStatus
-				order.UpdatedAt = time.Now()
-				err = s.orderRepo.UpdateOrderStatus(ctx, order.ID, order.Status)
-				if err != nil {
-					span.RecordError(err)
-					span.SetStatus(codes.Error, err.Message)
 
-					s.log.Error(
-						layer, method,
-						err.Error(), err,
-						"user_id", request.UserID,
-						"order_id", request.OrderID,
-					)
-					return
+				if status == lastStatus {
+					continue
 				}
-				s.log.Debug(
-					layer, method,
-					"update new order status",
-					"user_id", request.UserID,
-					"order_id", request.OrderID,
-				)
+				lastStatus = status
 
-				ch <- &dto.GetOrderStatusResponse{
-					Status:    order.Status.ToString(),
-					UpdatedAt: &order.UpdatedAt,
+				now := time.Now()
+				ch <- &dto.GetOrderStatusResponse{Status: status.ToString(), UpdatedAt: &now}
+
+				if status == model.StatusClosed {
+					return
 				}
 			}
 		}
-	}()
-	span.SetStatus(codes.Ok, "get order success")
+	}(order.Status, order.UpdatedAt)
+
+	span.SetStatus(codes.Ok, "subscribe order status started")
+
 	return ch, nil
 }
 
