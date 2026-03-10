@@ -26,3 +26,7 @@ type MarketCacheRepo interface {
 	Get(ctx context.Context, key string) ([]model.Market, *errors.CustomError)
 	Del(ctx context.Context, key string) *errors.CustomError
 }
+
+type OrderStatusSubscriber interface {
+	SubscribeOrderStatus(ctx context.Context, orderID uuid.UUID) (<-chan model.OrderStatus, *errors.CustomError)
+}
