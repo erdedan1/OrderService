@@ -34,7 +34,7 @@ func New(orderService usecase.OrderService, log log.Logger) *Handler {
 const layer = "MarketHandler"
 
 func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderRequest) (*pb.CreateOrderResponse, error) {
-	const method = "GetOrder"
+	const method = "CreateOrder"
 
 	ctx, span := h.tracer.Start(ctx, "MarketHandler.CreateOrder")
 	defer span.End()

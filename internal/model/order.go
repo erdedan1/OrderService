@@ -16,40 +16,27 @@ type Order struct {
 	Status    OrderStatus
 	Price     decimal.Decimal
 	CreatedAt time.Time
-	UpdateAt  time.Time
+	UpdatedAt time.Time
 	DeletedAt time.Time
-}
-
-func (o OrderStatus) ToString() string {
-	switch {
-	case o == StatusCreated:
-		return "CREATED"
-	default:
-		return ""
-	}
 }
 
 type OrderStatus string
 
 const (
-	OrderStatusCreated OrderStatus = "CREATED"
+	StatusCreated       OrderStatus = "ORDER_STATUS_CREATED"
+	StatusPending       OrderStatus = "ORDER_STATUS_PENDING"
+	StatusWaitSeller    OrderStatus = "ORDER_STATUS_WAIT_SELLER"
+	StatusPaid          OrderStatus = "ORDER_STATUS_PAID"
+	StatusOnHold        OrderStatus = "ORDER_STATUS_ON_HOLD"
+	StatusProcessing    OrderStatus = "ORDER_STATUS_PROCESSING"
+	StatusPacked        OrderStatus = "ORDER_STATUS_PACKED"
+	StatusOutOfDelivery OrderStatus = "ORDER_STATUS_OUT_OF_DELIVERY"
+	StatusOnTheWay      OrderStatus = "ORDER_STATUS_ON_THE_WAY"
+	StatusDelivered     OrderStatus = "ORDER_STATUS_DELIVERED"
+	StatusClosed        OrderStatus = "ORDER_STATUS_CLOSED"
 )
 
-const (
-	StatusCreated       = "ORDER_STATUS_CREATED"
-	StatusPending       = "ORDER_STATUS_PENDING"
-	StatusWaitSeller    = "ORDER_STATUS_WAIT_SELLER"
-	StatusPaid          = "ORDER_STATUS_PAID"
-	StatusOnHold        = "ORDER_STATUS_ON_HOLD"
-	StatusProcessing    = "ORDER_STATUS_PROCESSING"
-	StatusPacked        = "ORDER_STATUS_PACKED"
-	StatusOutOfDelivery = "ORDER_STATUS_OUT_OF_DELIVERY"
-	StatusOnTheWay      = "ORDER_STATUSON_THE_WAY"
-	StatusDelivered     = "ORDER_STATUS_DELIVERED"
-	StatusClosed        = "ORDER_STATUS_CLOSED"
-)
-
-var OrderStatusProcessing []string = []string{
+var OrderStatusProcessing = []OrderStatus{
 	StatusCreated,
 	StatusPending,
 	StatusWaitSeller,
@@ -61,4 +48,46 @@ var OrderStatusProcessing []string = []string{
 	StatusOnTheWay,
 	StatusDelivered,
 	StatusClosed,
+}
+
+func (o OrderStatus) ToString() string {
+	switch o {
+	case StatusCreated:
+		return "CREATED"
+	case StatusPending:
+		return "PENDING"
+	case StatusWaitSeller:
+		return "WAIT_SELLER"
+	case StatusPaid:
+		return "PAID"
+	case StatusOnHold:
+		return "ON_HOLD"
+	case StatusProcessing:
+		return "PROCESSING"
+	case StatusPacked:
+		return "PACKED"
+	case StatusOutOfDelivery:
+		return "OUT_OF_DELIVERY"
+	case StatusOnTheWay:
+		return "ON_THE_WAY"
+	case StatusDelivered:
+		return "DELIVERED"
+	case StatusClosed:
+		return "CLOSED"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+func NextOrderStatus(current OrderStatus) (OrderStatus, bool) {
+	for idx, status := range OrderStatusProcessing {
+		if status != current {
+			continue
+		}
+		if idx+1 >= len(OrderStatusProcessing) {
+			return current, false
+		}
+		return OrderStatusProcessing[idx+1], true
+	}
+	return StatusCreated, true
 }

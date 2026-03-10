@@ -274,7 +274,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		)
 		ch <- &dto.GetOrderStatusResponse{
 			Status:    order.Status.ToString(),
-			UpdatedAt: &order.UpdateAt,
+			UpdatedAt: &order.UpdatedAt,
 		}
 		return ch, nil
 	}
@@ -285,20 +285,18 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 
-		idx := 0
-
 		for {
 			select {
 			case <-ctx.Done():
 				return
 				//todo убрать все сделать другое
 			case <-ticker.C:
-				if idx >= len(model.OrderStatusProcessing) {
+				nextStatus, ok := model.NextOrderStatus(order.Status)
+				if !ok {
 					return
 				}
-				order.Status = model.OrderStatusCreated
-				order.UpdateAt = time.Now()
-				idx++
+				order.Status = nextStatus
+				order.UpdatedAt = time.Now()
 				err = s.orderRepo.UpdateOrderStatus(ctx, order.ID, order.Status)
 				if err != nil {
 					span.RecordError(err)
@@ -321,7 +319,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 
 				ch <- &dto.GetOrderStatusResponse{
 					Status:    order.Status.ToString(),
-					UpdatedAt: &order.UpdateAt,
+					UpdatedAt: &order.UpdatedAt,
 				}
 			}
 		}
