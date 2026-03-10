@@ -16,10 +16,8 @@ import (
 	orderSrv "OrderService/internal/service/order"
 	"OrderService/internal/usecase"
 	"OrderService/pkg/cache"
-	grpc_client "OrderService/pkg/client/grpc"
 
 	pbOrder "github.com/erdedan1/protocol/proto/order_service/gen"
-	pbSpot "github.com/erdedan1/protocol/proto/spot_instrument_service/gen"
 	pbLogger "github.com/erdedan1/shared/interceptors/logger"
 	"github.com/erdedan1/shared/interceptors/recovery"
 	requestid "github.com/erdedan1/shared/interceptors/request_id"
@@ -51,16 +49,13 @@ func (a *App) Start(ctx context.Context) error {
 	_, span := tracer.Start(ctx, "test-span")
 	span.End()
 	a.log.Info(layer, method, "starting service")
-	clients := []grpc_client.IGRPCClient{}
-	conn, err := spot_instrument_service.SetupSpotInstrumentClient(a.cfg)
+
+	marketService, err := spot_instrument_service.NewMarketService(a.cfg)
 	if err != nil {
 		return err
 	}
-	clients = append(clients, conn)
+	defer marketService.Close()
 
-	marketService := spot_instrument_service.NewMarketService(
-		pbSpot.NewMarketServiceClient(conn),
-	)
 	redisClient := cache.NewRedisClient(a.cfg)
 	orderRepository := orderRepo.NewInMemoryRepo(a.log)
 	userRepository := user.NewRepo(a.log)
@@ -85,10 +80,7 @@ func (a *App) Start(ctx context.Context) error {
 	a.log.Info(layer, method, "waiting for shutdown signal")
 	<-quit
 	a.log.Info(layer, method, "shutdown signal received")
-	err = a.mustCloseConnectionWithGRPCClients(clients)
-	if err != nil {
-		a.log.Error(layer, method, "failed to close connection with grpc clients", err)
-	}
+
 	a.stopGRPCServer()
 	a.log.Info(layer, method, "service stopped gracefully")
 	return nil
@@ -127,15 +119,4 @@ func (a *App) stopGRPCServer() {
 	const method = "stopGRPCServer"
 	a.grpcServer.GracefulStop()
 	a.log.Info(layer, method, "grpc server stopped gracefully")
-}
-
-func (a *App) mustCloseConnectionWithGRPCClients(clients []grpc_client.IGRPCClient) error {
-	const method = "mustCloseConnectionWithGRPCClients"
-	for _, client := range clients {
-		if err := client.Close(); err != nil {
-			a.log.Error(layer, method, "failed to close client", err)
-		}
-	}
-
-	return nil
 }

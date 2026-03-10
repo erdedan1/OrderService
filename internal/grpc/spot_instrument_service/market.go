@@ -1,8 +1,10 @@
 package spot_instrument_service
 
 import (
+	"OrderService/config"
 	"OrderService/internal/dto"
 	"OrderService/internal/grpc/spot_instrument_service/mapper"
+	grpc_client "OrderService/pkg/client/grpc"
 	"context"
 
 	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen"
@@ -12,12 +14,27 @@ import (
 
 type marketService struct {
 	client pb.MarketServiceClient
+	conn   grpc_client.IGRPCClient
 }
 
-func NewMarketService(client pb.MarketServiceClient) *marketService {
-	return &marketService{
-		client: client,
+func NewMarketService(cfg *config.Config) (*marketService, error) {
+	conn, err := SetupSpotInstrumentClient(cfg)
+	if err != nil {
+		return nil, err
 	}
+
+	return &marketService{
+		client: pb.NewMarketServiceClient(conn),
+		conn:   conn,
+	}, nil
+}
+
+func (s *marketService) Close() error {
+	if s.conn == nil {
+		return nil
+	}
+
+	return s.conn.Close()
 }
 
 func (s *marketService) ViewMarketsByRoles(ctx context.Context, req *dto.ViewMarketsRequest) ([]dto.ViewMarketsResponse, *errors.CustomError) {
