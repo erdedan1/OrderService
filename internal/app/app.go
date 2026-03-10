@@ -11,6 +11,7 @@ import (
 	"OrderService/internal/grpc/spot_instrument_service"
 	"OrderService/internal/repository/market"
 	orderRepo "OrderService/internal/repository/order"
+	orderStatusRepo "OrderService/internal/repository/order_status"
 	"OrderService/internal/repository/user"
 	orderSrv "OrderService/internal/service/order"
 	"OrderService/pkg/cache"
@@ -53,11 +54,13 @@ func (a *App) Start(ctx context.Context) error {
 	orderRepository := orderRepo.NewInMemoryRepo(a.log)
 	userRepository := user.NewRepo(a.log)
 	marketCache := market.NewMarketsCache(redisClient, a.log)
+	orderStatusSubscriber := orderStatusRepo.NewRedisSubscriber(redisClient, a.log)
 	orderService := orderSrv.New(
 		orderRepository,
 		userRepository,
 		marketCache,
 		marketService,
+		orderStatusSubscriber,
 		a.log,
 	)
 
