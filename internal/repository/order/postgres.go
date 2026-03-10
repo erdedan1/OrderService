@@ -52,7 +52,7 @@ func (r *PostgresRepo) CreateOrder(ctx context.Context, order *model.Order) (*mo
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at
 	`
-	row := r.db.QueryRowxContext(ctx, query, order.UserId, order.MarketId, order.Quantity, order.Type, order.Status, order.Price)
+	row := r.db.QueryRowxContext(ctx, query, order.UserID, order.MarketID, order.Quantity, order.Type, order.Status, order.Price)
 
 	err := row.Scan(&order.ID, &order.CreatedAt)
 	if err != nil {
@@ -119,7 +119,7 @@ func (r *PostgresRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order
 	return &notification, nil
 }
 
-func (r *PostgresRepo) UpdateOrder(ctx context.Context, id uuid.UUID, order *model.Order) (*model.Order, *errorz.CustomError) {
+func (r *PostgresRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, status model.OrderStatus) *errorz.CustomError {
 	const method = "UpdateOrder"
 
 	ctx, span := r.tracer.Start(ctx, "OrderPostgresRepo.UpdateOrder")
@@ -129,17 +129,13 @@ func (r *PostgresRepo) UpdateOrder(ctx context.Context, id uuid.UUID, order *mod
 		attribute.String("order.id", id.String()),
 	)
 
-	span.SetAttributes(
-		attribute.String("order.id", id.String()),
-	)
-
 	query := `
 			UPDATE orders
-			SET user_id = $1, market_id = $2, quantity = $3, type = $4, status = $5, price = $6, updated_at = $7, deleted_at = $8
-			WHERE id = $9
+			SET status = $1
+			WHERE id = $2
 			`
 
-	res, err := r.db.ExecContext(ctx, query)
+	res, err := r.db.ExecContext(ctx, query, id, status)
 	if err != nil {
 		span.RecordError(errs.ErrOrderNotFound)
 		span.SetStatus(codes.Error, errs.ErrOrderNotFound.Message)
@@ -150,7 +146,7 @@ func (r *PostgresRepo) UpdateOrder(ctx context.Context, id uuid.UUID, order *mod
 			err.Error(), err,
 			"order_id", id,
 		)
-		return nil, errorz.New(errorz.INTERNAL, err.Error())
+		return errorz.New(errorz.INTERNAL, err.Error())
 	}
 
 	rowsAffected, err := res.RowsAffected()
@@ -164,7 +160,7 @@ func (r *PostgresRepo) UpdateOrder(ctx context.Context, id uuid.UUID, order *mod
 			err.Error(), err,
 			"order_id", id,
 		)
-		return nil, errorz.New(errorz.INTERNAL, err.Error())
+		return errorz.New(errorz.INTERNAL, err.Error())
 	}
 	if rowsAffected == 0 {
 		span.RecordError(errs.ErrOrderNotFound)
@@ -176,10 +172,10 @@ func (r *PostgresRepo) UpdateOrder(ctx context.Context, id uuid.UUID, order *mod
 			errs.ErrOrderNotFound.Message,
 			errs.ErrOrderNotFound,
 		)
-		return nil, errs.ErrOrderNotFound
+		return errs.ErrOrderNotFound
 	}
 
 	span.SetStatus(codes.Ok, "order success updated")
 
-	return order, nil
+	return nil
 }

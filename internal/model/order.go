@@ -9,29 +9,31 @@ import (
 
 type Order struct {
 	ID        uuid.UUID
-	UserId    uuid.UUID
-	MarketId  uuid.UUID
+	UserID    uuid.UUID
+	MarketID  uuid.UUID
 	Quantity  int64
 	Type      string
-	Status    string
+	Status    OrderStatus
 	Price     decimal.Decimal
 	CreatedAt time.Time
 	UpdateAt  time.Time
 	DeletedAt time.Time
 }
 
-func (o *Order) Update(order *Order) *Order {
-	o.UserId = order.UserId
-	o.MarketId = order.MarketId
-	o.Quantity = order.Quantity
-	o.Type = order.Type
-	o.Status = order.Status
-	o.Price = order.Price
-	o.CreatedAt = order.CreatedAt
-	o.UpdateAt = order.UpdateAt
-	o.DeletedAt = order.DeletedAt
-	return o
+func (o OrderStatus) ToString() string {
+	switch {
+	case o == StatusCreated:
+		return "CREATED"
+	default:
+		return ""
+	}
 }
+
+type OrderStatus string
+
+const (
+	OrderStatusCreated OrderStatus = "CREATED"
+)
 
 const (
 	StatusCreated       = "ORDER_STATUS_CREATED"

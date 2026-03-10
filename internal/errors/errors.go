@@ -6,7 +6,7 @@ import (
 
 var (
 	ErrOrderNotFound           = errs.New(errs.NOT_FOUND, "order not found")
-	ErrIvalidArgument          = errs.New(errs.INVALID_ARGUMENT, "invalid argument")
+	ErrInvalidArgument         = errs.New(errs.INVALID_ARGUMENT, "invalid argument")
 	ErrUserHasNoAccessToMarket = errs.New(errs.PERMISSION_DENIED, "user has no acces to market")
 	ErrNoMarketsAvailable      = errs.New(errs.NOT_FOUND, "no markets available for user")
 	ErrInvalidUserID           = errs.New(errs.PERMISSION_DENIED, "invalid user id")

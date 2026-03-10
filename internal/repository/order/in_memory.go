@@ -94,7 +94,7 @@ func (r *InMemoryRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order
 	return nil, errs.ErrOrderNotFound
 }
 
-func (r *InMemoryRepo) UpdateOrder(ctx context.Context, id uuid.UUID, order *model.Order) (*model.Order, *errors.CustomError) {
+func (r *InMemoryRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, status model.OrderStatus) *errors.CustomError {
 	const method = "UpdateOrder"
 
 	ctx, span := r.tracer.Start(ctx, "OrderInMemoryRepo.UpdateOrder")
@@ -111,9 +111,10 @@ func (r *InMemoryRepo) UpdateOrder(ctx context.Context, id uuid.UUID, order *mod
 			method,
 			"order success updated",
 			"order_id", id,
-			"user_id", order.UserId,
+			"user_id", o.UserID,
 		)
-		return o.Update(order), nil
+		o.Status = status
+		return nil
 	}
 
 	span.RecordError(errs.ErrOrderNotFound)
@@ -127,5 +128,5 @@ func (r *InMemoryRepo) UpdateOrder(ctx context.Context, id uuid.UUID, order *mod
 		"order_id", id,
 	)
 
-	return nil, errs.ErrOrderNotFound
+	return errs.ErrOrderNotFound
 }

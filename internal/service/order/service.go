@@ -9,9 +9,9 @@ import (
 	"OrderService/internal/model"
 	"OrderService/internal/usecase"
 
-	pbOrder "github.com/erdedan1/protocol/proto/order_service/gen"
 	errors "github.com/erdedan1/shared/errs"
 	log "github.com/erdedan1/shared/logger"
+	"github.com/shopspring/decimal"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -23,8 +23,6 @@ type Service struct {
 	pb     usecase.GRPCServices
 	l      log.Logger
 	tracer trace.Tracer
-
-	pbOrder.UnimplementedOrderServiceServer
 }
 
 func New(repo *usecase.Repositories, log log.Logger, pb usecase.GRPCServices) *Service {
@@ -45,10 +43,10 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("user.id", request.UserId.String()),
+		attribute.String("user.id", request.UserID.String()),
 	)
 
-	user, err := s.repo.UserRepo.GetUserById(ctx, request.UserId)
+	user, err := s.repo.UserRepo.GetUserById(ctx, request.UserID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -56,7 +54,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		s.l.Error(
 			layer, method,
 			err.Error(), err,
-			"user_id", request.UserId,
+			"user_id", request.UserID,
 		)
 		return nil, err
 	}
@@ -68,12 +66,12 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 			layer, method,
 			"user has no acces to market",
 			errs.ErrUserHasNoAccessToMarket,
-			"user_id", request.UserId,
+			"user_id", request.UserID,
 		)
 		return nil, errs.ErrUserHasNoAccessToMarket
 	}
 
-	cacheKey := "markets:" + request.UserId.String()
+	cacheKey := "markets:" + request.UserID.String()
 	marketsCache, err := s.repo.MarketCache.Get(ctx, cacheKey)
 	if err != nil {
 		span.RecordError(err)
@@ -86,14 +84,14 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		return nil, err
 	}
 	if len(marketsCache) == 0 || marketsCache == nil {
-		markets, err := s.pb.MarketService.ViewMarketsByRoles(ctx, new(dto.ViewMarketsRequest).UserRolesToProto(user.Roles))
+		markets, err := s.pb.MarketService.ViewMarketsByRoles(ctx, dto.NewViewMarketsRequestFromRoles(user.Roles))
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 
 			s.l.Error(layer, method,
 				err.Error(), err,
-				"user_id", request.UserId,
+				"user_id", request.UserID,
 			)
 			return nil, err
 		}
@@ -105,7 +103,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 				layer, method,
 				errs.ErrMarketNotFound.Message,
 				errs.ErrMarketNotFound,
-				"user_id", request.UserId,
+				"user_id", request.UserID,
 			)
 			return nil, errs.ErrMarketNotFound
 		}
@@ -117,13 +115,13 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 			s.l.Error(
 				layer, method,
 				err.Message, err,
-				"user_id", request.UserId,
+				"user_id", request.UserID,
 			)
 			return nil, err
 		}
 	}
 
-	req, err := request.DtoToModel()
+	req, err := createOrderRequestToModel(request)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -131,7 +129,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		s.l.Error(
 			layer, method,
 			err.Error(), err,
-			"user_id", request.UserId,
+			"user_id", request.UserID,
 		)
 		return nil, err
 	}
@@ -144,7 +142,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		s.l.Error(
 			layer, method,
 			err.Error(), err,
-			"user_id", request.UserId,
+			"user_id", request.UserID,
 		)
 		return nil, err
 	}
@@ -155,7 +153,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 
 	return &dto.CreateOrderResponse{
 		ID:     order.ID,
-		Status: order.Status,
+		Status: order.Status.ToString(),
 	}, nil
 }
 
@@ -166,11 +164,11 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("user.id", request.UserId.String()),
-		attribute.String("order.id", request.OrderId.String()),
+		attribute.String("user.id", request.UserID.String()),
+		attribute.String("order.id", request.OrderID.String()),
 	)
 
-	order, err := s.repo.OrderRepo.GetOrder(ctx, request.OrderId)
+	order, err := s.repo.OrderRepo.GetOrder(ctx, request.OrderID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -178,13 +176,13 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 		s.l.Error(
 			layer, method,
 			err.Error(), err,
-			"user_id", request.UserId,
-			"order_id", request.OrderId,
+			"user_id", request.UserID,
+			"order_id", request.OrderID,
 		)
 		return nil, err
 	}
 
-	if order.UserId != request.UserId {
+	if order.UserID != request.UserID {
 		span.RecordError(errs.ErrInvalidUserID)
 		span.SetStatus(codes.Error, errs.ErrInvalidUserID.Message)
 
@@ -193,8 +191,8 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 			method,
 			errs.ErrInvalidUserID.Message,
 			errs.ErrInvalidUserID,
-			"user_id", request.UserId,
-			"order_id", request.OrderId,
+			"user_id", request.UserID,
+			"order_id", request.OrderID,
 		)
 		return nil, errs.ErrInvalidUserID
 	}
@@ -209,7 +207,7 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 		"status", order.Status,
 	)
 
-	return &dto.GetOrderStatusResponse{Status: order.Status}, nil
+	return &dto.GetOrderStatusResponse{Status: order.Status.ToString()}, nil
 }
 
 func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrderStatusRequest) (<-chan *dto.GetOrderStatusResponse, *errors.CustomError) {
@@ -219,13 +217,13 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("user.id", request.UserId.String()),
-		attribute.String("order.id", request.OrderId.String()),
+		attribute.String("user.id", request.UserID.String()),
+		attribute.String("order.id", request.OrderID.String()),
 	)
 
 	ch := make(chan *dto.GetOrderStatusResponse)
 
-	order, err := s.repo.OrderRepo.GetOrder(ctx, request.OrderId)
+	order, err := s.repo.OrderRepo.GetOrder(ctx, request.OrderID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -233,13 +231,12 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		s.l.Error(
 			layer, method,
 			err.Error(), err,
-			"order_id", order.ID,
-			"status", order.Status,
+			"order_id", request.OrderID,
 		)
 		return nil, err
 	}
 
-	if order.UserId != request.UserId {
+	if order.UserID != request.UserID {
 		defer close(ch)
 		span.RecordError(errs.ErrInvalidUserID)
 		span.SetStatus(codes.Error, errs.ErrInvalidUserID.Message)
@@ -248,8 +245,8 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 			layer, method,
 			errs.ErrInvalidUserID.Message,
 			errs.ErrInvalidUserID,
-			"order_id", request.OrderId,
-			"user_id", request.UserId,
+			"order_id", request.OrderID,
+			"user_id", request.UserID,
 		)
 		return ch, errs.ErrInvalidUserID
 	}
@@ -262,12 +259,12 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		s.l.Debug(
 			layer, method,
 			"order already completed and closed",
-			"user_id", request.UserId,
-			"order_id", request.OrderId,
+			"user_id", request.UserID,
+			"order_id", request.OrderID,
 		)
 		ch <- &dto.GetOrderStatusResponse{
-			Status:   order.Status,
-			UpdateAt: &order.UpdateAt,
+			Status:    order.Status.ToString(),
+			UpdatedAt: &order.UpdateAt,
 		}
 		return ch, nil
 	}
@@ -284,15 +281,15 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 			select {
 			case <-ctx.Done():
 				return
-
+				//todo убрать все сделать другое
 			case <-ticker.C:
 				if idx >= len(model.OrderStatusProcessing) {
 					return
 				}
-				order.Status = model.OrderStatusProcessing[idx]
+				order.Status = model.OrderStatusCreated
 				order.UpdateAt = time.Now()
 				idx++
-				orderUpdated, err := s.repo.OrderRepo.UpdateOrder(ctx, order.ID, order)
+				err = s.repo.OrderRepo.UpdateOrderStatus(ctx, order.ID, order.Status)
 				if err != nil {
 					span.RecordError(err)
 					span.SetStatus(codes.Error, err.Message)
@@ -300,25 +297,42 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 					s.l.Error(
 						layer, method,
 						err.Error(), err,
-						"user_id", request.UserId,
-						"order_id", request.OrderId,
+						"user_id", request.UserID,
+						"order_id", request.OrderID,
 					)
 					return
 				}
 				s.l.Debug(
 					layer, method,
 					"update new order status",
-					"user_id", request.UserId,
-					"order_id", request.OrderId,
+					"user_id", request.UserID,
+					"order_id", request.OrderID,
 				)
 
 				ch <- &dto.GetOrderStatusResponse{
-					Status:   orderUpdated.Status,
-					UpdateAt: &orderUpdated.UpdateAt,
+					Status:    order.Status.ToString(),
+					UpdatedAt: &order.UpdateAt,
 				}
 			}
 		}
 	}()
 	span.SetStatus(codes.Ok, "get order success")
 	return ch, nil
+}
+
+func createOrderRequestToModel(request *dto.CreateOrderRequest) (*model.Order, *errors.CustomError) {
+	price, err := decimal.NewFromString(request.Price)
+	if err != nil {
+		return nil, errs.ErrInvalidArgument
+	}
+
+	return &model.Order{
+		UserID:    request.UserID,
+		MarketID:  request.MarketID,
+		Quantity:  request.Quantity,
+		Type:      request.OrderType,
+		Status:    model.StatusCreated,
+		Price:     price,
+		CreatedAt: time.Now(),
+	}, nil
 }

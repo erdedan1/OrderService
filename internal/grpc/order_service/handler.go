@@ -3,7 +3,7 @@ package order_service
 import (
 	"context"
 
-	"OrderService/internal/dto"
+	"OrderService/internal/grpc/order_service/mapper"
 	"OrderService/internal/usecase"
 
 	pb "github.com/erdedan1/protocol/proto/order_service/gen"
@@ -39,7 +39,7 @@ func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderReques
 	ctx, span := h.tracer.Start(ctx, "MarketHandler.CreateOrder")
 	defer span.End()
 
-	requestDto, err := dto.NewCreateOrderRequest(request)
+	requestDto, err := mapper.CreateOrderRequestFromProto(request)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
@@ -65,7 +65,7 @@ func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderReques
 
 	span.SetStatus(codes.Ok, "order success created")
 
-	return order.DtoToProto(), nil
+	return mapper.CreateOrderResponseToProto(order), nil
 }
 
 func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatusRequest) (*pb.GetOrderStatusResponse, error) {
@@ -74,7 +74,7 @@ func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatus
 	ctx, span := h.tracer.Start(ctx, "MarketHandler.GetOrderStatus")
 	defer span.End()
 
-	requestDto, err := dto.NewGetOrderStatusRequest(request)
+	requestDto, err := mapper.GetOrderStatusRequestFromProto(request)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
@@ -100,7 +100,7 @@ func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatus
 
 	span.SetStatus(codes.Ok, "get order success")
 
-	return order.DtoToProto(), nil
+	return mapper.GetOrderStatusResponseToProto(order), nil
 }
 
 func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream pb.OrderService_SubscribeOrderStatusServer) error {
@@ -111,7 +111,7 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 	ctx, span := h.tracer.Start(ctx, "MarketHandler.SubscribeOrderStatus")
 	defer span.End()
 
-	requestDto, err := dto.NewGetOrderStatusRequest(request)
+	requestDto, err := mapper.GetOrderStatusRequestFromProto(request)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
@@ -148,10 +148,7 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 				return nil
 			}
 
-			err := stream.Send(&pb.GetOrderStatusResponse{
-				Status:    order.DtoToProto().Status,
-				UpdatedAt: order.DtoToProto().UpdatedAt,
-			})
+			err := stream.Send(mapper.GetOrderStatusResponseToProto(order))
 			if err != nil {
 				span.RecordError(err)
 				span.SetStatus(codes.Error, err.Error())

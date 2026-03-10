@@ -2,6 +2,7 @@ package spot_instrument_service
 
 import (
 	"OrderService/internal/dto"
+	"OrderService/internal/grpc/spot_instrument_service/mapper"
 	"context"
 
 	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen"
@@ -20,14 +21,14 @@ func NewMarketService(client pb.MarketServiceClient) *marketService {
 }
 
 func (s *marketService) ViewMarketsByRoles(ctx context.Context, req *dto.ViewMarketsRequest) ([]dto.ViewMarketsResponse, *errors.CustomError) {
-	resp, err := s.client.ViewMarketsByRoles(ctx, req.DtoToProto())
+	resp, err := s.client.ViewMarketsByRoles(ctx, mapper.ViewMarketsRequestToProto(req))
 	if err != nil {
 		return nil, errs.New(errs.UNAVAILABLE, err.Error())
 	}
 
 	marketsResp := make([]dto.ViewMarketsResponse, 0, len(resp.Markets))
 	for _, m := range resp.Markets {
-		dtoM, err := dto.NewViewMarketsResponse(m)
+		dtoM, err := mapper.ViewMarketsResponseFromProto(m)
 		if err != nil {
 			return nil, err
 		}

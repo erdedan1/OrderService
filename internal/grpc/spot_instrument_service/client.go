@@ -4,7 +4,7 @@ import (
 	"OrderService/config"
 	grpc_client "OrderService/pkg/client/grpc"
 
-	requestid "github.com/erdedan1/shared_for_homework/pkg/interceptors/request_id"
+	requestid "github.com/erdedan1/shared/interceptors/request_id"
 	"google.golang.org/grpc"
 )
 
