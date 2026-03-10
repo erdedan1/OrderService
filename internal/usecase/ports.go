@@ -3,11 +3,11 @@ package usecase
 import (
 	"context"
 
-	"OrderService/internal/dto"
+	"OrderService/internal/model"
 
 	errors "github.com/erdedan1/shared/errs"
 )
 
 type MarketService interface {
-	ViewMarketsByRoles(ctx context.Context, req *dto.ViewMarketsRequest) ([]dto.ViewMarketsResponse, *errors.CustomError)
+	ViewMarketsByRoles(ctx context.Context, role []string) ([]model.Market, *errors.CustomError)
 }

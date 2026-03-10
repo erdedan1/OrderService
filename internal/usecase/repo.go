@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"OrderService/internal/dto"
 	"OrderService/internal/model"
 
 	errors "github.com/erdedan1/shared/errs"
@@ -23,7 +22,7 @@ type UserRepo interface {
 }
 
 type MarketCacheRepo interface {
-	Set(ctx context.Context, key string, value []dto.ViewMarketsResponse, ttl time.Duration) *errors.CustomError
-	Get(ctx context.Context, key string) ([]dto.ViewMarketsResponse, *errors.CustomError)
+	Set(ctx context.Context, key string, value []model.Market, ttl time.Duration) *errors.CustomError
+	Get(ctx context.Context, key string) ([]model.Market, *errors.CustomError)
 	Del(ctx context.Context, key string) *errors.CustomError
 }

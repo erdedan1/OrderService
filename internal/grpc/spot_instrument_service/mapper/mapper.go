@@ -1,8 +1,8 @@
 package mapper
 
 import (
-	"OrderService/internal/dto"
 	errs "OrderService/internal/errors"
+	"OrderService/internal/model"
 
 	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen"
 	errors "github.com/erdedan1/shared/errs"
@@ -10,19 +10,19 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func ViewMarketsRequestToProto(req *dto.ViewMarketsRequest) *pb.ViewMarketsRequest {
-	result := &pb.ViewMarketsRequest{UserRoles: make([]string, 0, len(req.UserRoles))}
-	result.UserRoles = append(result.UserRoles, req.UserRoles...)
+func ViewMarketsRequestToProto(roles []string) *pb.ViewMarketsRequest {
+	result := &pb.ViewMarketsRequest{UserRoles: make([]string, 0, len(roles))}
+	result.UserRoles = append(result.UserRoles, roles...)
 	return result
 }
 
-func ViewMarketsResponseFromProto(market *pb.Market) (*dto.ViewMarketsResponse, *errors.CustomError) {
+func ViewMarketsResponseFromProto(market *pb.Market) (*model.Market, *errors.CustomError) {
 	id, err := uuid.Parse(market.Id)
 	if err != nil {
 		return nil, errs.ErrInvalidArgument
 	}
 
-	return &dto.ViewMarketsResponse{
+	return &model.Market{
 		ID:        id,
 		Name:      market.Name,
 		Enabled:   market.Enabled,
@@ -32,7 +32,7 @@ func ViewMarketsResponseFromProto(market *pb.Market) (*dto.ViewMarketsResponse, 
 	}, nil
 }
 
-func ViewMarketsResponseToProto(resp *dto.ViewMarketsResponse) *pb.Market {
+func ViewMarketsResponseToProto(resp *model.Market) *pb.Market {
 	return &pb.Market{
 		Id:        resp.ID.String(),
 		Name:      resp.Name,

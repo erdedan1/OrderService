@@ -1,11 +1,12 @@
 package spot_instrument_service
 
 import (
-	"OrderService/config"
-	"OrderService/internal/dto"
-	"OrderService/internal/grpc/spot_instrument_service/mapper"
-	grpc_client "OrderService/pkg/client/grpc"
 	"context"
+
+	"OrderService/config"
+	"OrderService/internal/grpc/spot_instrument_service/mapper"
+	"OrderService/internal/model"
+	grpc_client "OrderService/pkg/client/grpc"
 
 	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen"
 	"github.com/erdedan1/shared/errs"
@@ -37,13 +38,13 @@ func (s *marketService) Close() error {
 	return s.conn.Close()
 }
 
-func (s *marketService) ViewMarketsByRoles(ctx context.Context, req *dto.ViewMarketsRequest) ([]dto.ViewMarketsResponse, *errors.CustomError) {
-	resp, err := s.client.ViewMarketsByRoles(ctx, mapper.ViewMarketsRequestToProto(req))
+func (s *marketService) ViewMarketsByRoles(ctx context.Context, roles []string) ([]model.Market, *errors.CustomError) {
+	resp, err := s.client.ViewMarketsByRoles(ctx, mapper.ViewMarketsRequestToProto(roles))
 	if err != nil {
 		return nil, errs.New(errs.UNAVAILABLE, err.Error())
 	}
 
-	marketsResp := make([]dto.ViewMarketsResponse, 0, len(resp.Markets))
+	marketsResp := make([]model.Market, 0, len(resp.Markets))
 	for _, m := range resp.Markets {
 		dtoM, err := mapper.ViewMarketsResponseFromProto(m)
 		if err != nil {
