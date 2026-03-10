@@ -19,18 +19,28 @@ import (
 )
 
 type Service struct {
-	repo   *usecase.Repositories
-	pb     usecase.GRPCServices
-	log    log.Logger
-	tracer trace.Tracer
+	orderRepo   usecase.OrderRepo
+	userRepo    usecase.UserRepo
+	marketCache usecase.MarketCacheRepo
+	marketSrv   usecase.MarketService
+	log         log.Logger
+	tracer      trace.Tracer
 }
 
-func New(repo *usecase.Repositories, log log.Logger, pb usecase.GRPCServices) *Service {
+func New(
+	repo usecase.OrderRepo,
+	userRepo usecase.UserRepo,
+	marketCache usecase.MarketCacheRepo,
+	marketSrv usecase.MarketService,
+	log log.Logger,
+) *Service {
 	return &Service{
-		repo:   repo,
-		pb:     pb,
-		log:    log,
-		tracer: otel.Tracer("order-service/Service"),
+		orderRepo:   repo,
+		userRepo:    userRepo,
+		marketCache: marketCache,
+		marketSrv:   marketSrv,
+		log:         log,
+		tracer:      otel.Tracer("order-service/Service"),
 	}
 }
 
@@ -46,7 +56,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		attribute.String("user.id", request.UserID.String()),
 	)
 
-	user, err := s.repo.UserRepo.GetUserById(ctx, request.UserID)
+	user, err := s.userRepo.GetUserById(ctx, request.UserID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -72,7 +82,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 	}
 
 	cacheKey := "markets:" + request.UserID.String()
-	marketsCache, err := s.repo.MarketCache.Get(ctx, cacheKey)
+	marketsCache, err := s.marketCache.Get(ctx, cacheKey)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -84,7 +94,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		return nil, err
 	}
 	if len(marketsCache) == 0 || marketsCache == nil {
-		markets, err := s.pb.MarketService.ViewMarketsByRoles(ctx, dto.NewViewMarketsRequestFromRoles(user.Roles))
+		markets, err := s.marketSrv.ViewMarketsByRoles(ctx, dto.NewViewMarketsRequestFromRoles(user.Roles))
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
@@ -107,7 +117,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 			)
 			return nil, errs.ErrMarketNotFound
 		}
-		err = s.repo.MarketCache.Set(ctx, cacheKey, markets, 5*time.Minute)
+		err = s.marketCache.Set(ctx, cacheKey, markets, 5*time.Minute)
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
@@ -134,7 +144,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		return nil, err
 	}
 
-	order, err := s.repo.OrderRepo.CreateOrder(ctx, req)
+	order, err := s.orderRepo.CreateOrder(ctx, req)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -168,7 +178,7 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 		attribute.String("order.id", request.OrderID.String()),
 	)
 
-	order, err := s.repo.OrderRepo.GetOrder(ctx, request.OrderID)
+	order, err := s.orderRepo.GetOrder(ctx, request.OrderID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -223,7 +233,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 
 	ch := make(chan *dto.GetOrderStatusResponse)
 
-	order, err := s.repo.OrderRepo.GetOrder(ctx, request.OrderID)
+	order, err := s.orderRepo.GetOrder(ctx, request.OrderID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -289,7 +299,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 				order.Status = model.OrderStatusCreated
 				order.UpdateAt = time.Now()
 				idx++
-				err = s.repo.OrderRepo.UpdateOrderStatus(ctx, order.ID, order.Status)
+				err = s.orderRepo.UpdateOrderStatus(ctx, order.ID, order.Status)
 				if err != nil {
 					span.RecordError(err)
 					span.SetStatus(codes.Error, err.Message)

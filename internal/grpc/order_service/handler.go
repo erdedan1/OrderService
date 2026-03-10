@@ -16,18 +16,18 @@ import (
 )
 
 type Handler struct {
-	srvs   usecase.Services
-	l      log.Logger
-	tracer trace.Tracer
+	orderService usecase.OrderService
+	log          log.Logger
+	tracer       trace.Tracer
 
 	pb.UnimplementedOrderServiceServer
 }
 
-func New(srvs usecase.Services, l log.Logger) *Handler {
+func New(orderService usecase.OrderService, log log.Logger) *Handler {
 	return &Handler{
-		srvs:   srvs,
-		l:      l,
-		tracer: otel.Tracer("order-service/MarketHandler"),
+		orderService: orderService,
+		log:          log,
+		tracer:       otel.Tracer("order-service/MarketHandler"),
 	}
 }
 
@@ -44,19 +44,19 @@ func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderReques
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
 
-		h.l.Error(
+		h.log.Error(
 			layer, method,
 			err.Error(), err,
 		)
 		return nil, status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
 
-	order, err := h.srvs.OrderService.CreateOrder(ctx, requestDto)
+	order, err := h.orderService.CreateOrder(ctx, requestDto)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
 
-		h.l.Error(
+		h.log.Error(
 			layer, method,
 			err.Error(), err,
 		)
@@ -79,19 +79,19 @@ func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatus
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
 
-		h.l.Error(
+		h.log.Error(
 			layer, method,
 			err.Error(), err,
 		)
 		return nil, status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
 
-	order, err := h.srvs.OrderService.GetOrderStatus(ctx, requestDto)
+	order, err := h.orderService.GetOrderStatus(ctx, requestDto)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
 
-		h.l.Error(
+		h.log.Error(
 			layer, method,
 			err.Error(), err,
 		)
@@ -116,7 +116,7 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
 
-		h.l.Error(
+		h.log.Error(
 			layer, method,
 			err.Error(), err,
 		)
@@ -126,12 +126,12 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 	ctx, cancel := context.WithCancel(stream.Context())
 	defer cancel()
 
-	ch, err := h.srvs.OrderService.SubscribeOrderStatus(ctx, requestDto)
+	ch, err := h.orderService.SubscribeOrderStatus(ctx, requestDto)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
 
-		h.l.Error(
+		h.log.Error(
 			layer, method,
 			err.Error(), err,
 		)
@@ -153,7 +153,7 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 				span.RecordError(err)
 				span.SetStatus(codes.Error, err.Error())
 
-				h.l.Error(
+				h.log.Error(
 					layer, method,
 					err.Error(), err,
 				)

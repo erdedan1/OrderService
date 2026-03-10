@@ -27,21 +27,3 @@ type MarketCacheRepo interface {
 	Get(ctx context.Context, key string) ([]dto.ViewMarketsResponse, *errors.CustomError)
 	Del(ctx context.Context, key string) *errors.CustomError
 }
-
-type Repositories struct {
-	OrderRepo   OrderRepo
-	UserRepo    UserRepo
-	MarketCache MarketCacheRepo
-}
-
-func NewRepositories(
-	orderRepo OrderRepo,
-	userRepo UserRepo,
-	marketCache MarketCacheRepo,
-) *Repositories {
-	return &Repositories{
-		OrderRepo:   orderRepo,
-		UserRepo:    userRepo,
-		MarketCache: marketCache,
-	}
-}

@@ -133,9 +133,9 @@ func (r *PostgresRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 			UPDATE orders
 			SET status = $1
 			WHERE id = $2
-			`
+		`
 
-	res, err := r.db.ExecContext(ctx, query, id, status)
+	res, err := r.db.ExecContext(ctx, query, status, id)
 	if err != nil {
 		span.RecordError(errs.ErrOrderNotFound)
 		span.SetStatus(codes.Error, errs.ErrOrderNotFound.Message)

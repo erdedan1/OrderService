@@ -51,7 +51,6 @@ func (a *App) Start(ctx context.Context) error {
 	_, span := tracer.Start(ctx, "test-span")
 	span.End()
 	a.log.Info(layer, method, "starting service")
-	//хз какая то каша получилась
 	clients := []grpc_client.IGRPCClient{}
 	conn, err := spot_instrument_service.SetupSpotInstrumentClient(a.cfg)
 	if err != nil {
@@ -59,21 +58,23 @@ func (a *App) Start(ctx context.Context) error {
 	}
 	clients = append(clients, conn)
 
-	driver := usecase.NewGRPCServices(
-		spot_instrument_service.NewMarketService(
-			pbSpot.NewMarketServiceClient(conn),
-		),
+	marketService := spot_instrument_service.NewMarketService(
+		pbSpot.NewMarketServiceClient(conn),
 	)
 	redisClient := cache.NewRedisClient(a.cfg)
-	repos := usecase.NewRepositories(
-		orderRepo.NewInMemoryRepo(a.log),
-		user.NewRepo(a.log),
-		market.NewMarketsCache(redisClient, a.log),
+	orderRepository := orderRepo.NewInMemoryRepo(a.log)
+	userRepository := user.NewRepo(a.log)
+	marketCache := market.NewMarketsCache(redisClient, a.log)
+	orderService := orderSrv.New(
+		orderRepository,
+		userRepository,
+		marketCache,
+		marketService,
+		a.log,
 	)
-	srvs := usecase.NewServices(orderSrv.New(repos, a.log, *driver))
 
 	go func() {
-		if err := a.startGRPCServer(*srvs); err != nil {
+		if err := a.startGRPCServer(orderService); err != nil {
 			os.Exit(1)
 		}
 	}()
@@ -93,7 +94,7 @@ func (a *App) Start(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) startGRPCServer(usecase usecase.Services) error {
+func (a *App) startGRPCServer(orderService usecase.OrderService) error {
 	const method = "startGRPCServer"
 	zap, _ := zap.NewProduction()
 	grpcServer := grpc.NewServer(
@@ -105,7 +106,7 @@ func (a *App) startGRPCServer(usecase usecase.Services) error {
 	)
 
 	a.grpcServer = grpcServer
-	grpcHandler := order_service.New(usecase, a.log)
+	grpcHandler := order_service.New(orderService, a.log)
 	pbOrder.RegisterOrderServiceServer(grpcServer, grpcHandler)
 
 	lis, err := net.Listen("tcp", a.cfg.GRPCServer.Address)

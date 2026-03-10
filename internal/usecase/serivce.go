@@ -13,13 +13,3 @@ type OrderService interface {
 	GetOrderStatus(ctx context.Context, request *dto.GetOrderStatusRequest) (*dto.GetOrderStatusResponse, *errors.CustomError)
 	SubscribeOrderStatus(ctx context.Context, request *dto.GetOrderStatusRequest) (<-chan *dto.GetOrderStatusResponse, *errors.CustomError)
 }
-
-type Services struct {
-	OrderService OrderService
-}
-
-func NewServices(orderService OrderService) *Services {
-	return &Services{
-		OrderService: orderService,
-	}
-}
