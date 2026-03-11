@@ -12,7 +12,6 @@ import (
 	errors "github.com/erdedan1/shared/errs"
 	log "github.com/erdedan1/shared/logger"
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -138,7 +137,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		}
 	}
 
-	req, err := createOrderRequestToModel(request)
+	req, err := dto.CreateOrderRequestToModel(request)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -163,13 +162,10 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		)
 		return nil, err
 	}
-	//todo сделать метод апдейт который будет обновлять статус и закидывать его в паблишер
-	//сделать горутину которая будет тыкать каждые 10 сек с новым статусом эту штуку
-	// if s.orderStatusPublisher != nil {
-	// 	if publishErr := s.orderStatusPublisher.PublishOrderStatus(ctx, order.ID, order.Status); publishErr != nil {
-	// 		s.log.Error(layer, method, publishErr.Error(), publishErr, "order_id", order.ID, "status", order.Status)
-	// 	}
-	// }
+
+	if publishErr := s.orderStatusPublisher.PublishOrderStatus(ctx, order.ID, order.Status); publishErr != nil {
+		s.log.Error(layer, method, publishErr.Error(), publishErr, "order_id", order.ID, "status", order.Status)
+	}
 
 	span.SetStatus(codes.Ok, "order success created")
 
@@ -346,23 +342,6 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	return ch, nil
 }
 
-func createOrderRequestToModel(request *dto.CreateOrderRequest) (*model.Order, *errors.CustomError) {
-	price, err := decimal.NewFromString(request.Price)
-	if err != nil {
-		return nil, errs.ErrInvalidArgument
-	}
-
-	return &model.Order{
-		UserID:    request.UserID,
-		MarketID:  request.MarketID,
-		Quantity:  request.Quantity,
-		Type:      request.OrderType,
-		Status:    model.StatusCreated,
-		Price:     price,
-		CreatedAt: time.Now(),
-	}, nil
-}
-
 func (s *Service) UpdateOrderStatus(ctx context.Context, orderID uuid.UUID, status model.OrderStatus) *errors.CustomError {
 	const method = "UpdateOrderStatus"
 
@@ -388,7 +367,7 @@ func (s *Service) publishOrderLifecycle(ctx context.Context, orderID uuid.UUID, 
 
 	status := initialStatus
 	for {
-		nextStatus, hasNext := nextOrderStatus(status)
+		nextStatus, hasNext := model.NextOrderStatus(status)
 		if !hasNext {
 			return
 		}
@@ -404,32 +383,5 @@ func (s *Service) publishOrderLifecycle(ctx context.Context, orderID uuid.UUID, 
 		}
 
 		status = nextStatus
-	}
-}
-
-func nextOrderStatus(current model.OrderStatus) (model.OrderStatus, bool) {
-	switch current {
-	case model.StatusCreated:
-		return model.StatusPending, true
-	case model.StatusPending:
-		return model.StatusWaitSeller, true
-	case model.StatusWaitSeller:
-		return model.StatusPaid, true
-	case model.StatusPaid:
-		return model.StatusOnHold, true
-	case model.StatusOnHold:
-		return model.StatusProcessing, true
-	case model.StatusProcessing:
-		return model.StatusPacked, true
-	case model.StatusPacked:
-		return model.StatusOutOfDelivery, true
-	case model.StatusOutOfDelivery:
-		return model.StatusOnTheWay, true
-	case model.StatusOnTheWay:
-		return model.StatusDelivered, true
-	case model.StatusDelivered:
-		return model.StatusClosed, true
-	default:
-		return current, false
 	}
 }

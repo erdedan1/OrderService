@@ -65,3 +65,30 @@ func (o OrderStatus) ToString() string {
 		return "ORDER_STATUS_UNSPECIFIED"
 	}
 }
+
+func NextOrderStatus(current OrderStatus) (OrderStatus, bool) {
+	switch current {
+	case StatusCreated:
+		return StatusPending, true
+	case StatusPending:
+		return StatusWaitSeller, true
+	case StatusWaitSeller:
+		return StatusPaid, true
+	case StatusPaid:
+		return StatusOnHold, true
+	case StatusOnHold:
+		return StatusProcessing, true
+	case StatusProcessing:
+		return StatusPacked, true
+	case StatusPacked:
+		return StatusOutOfDelivery, true
+	case StatusOutOfDelivery:
+		return StatusOnTheWay, true
+	case StatusOnTheWay:
+		return StatusDelivered, true
+	case StatusDelivered:
+		return StatusClosed, true
+	default:
+		return current, false
+	}
+}
