@@ -9,5 +9,5 @@ import (
 )
 
 type MarketService interface {
-	ViewMarketsByRoles(ctx context.Context, role []string) ([]model.Market, *errors.CustomError)
+	ViewMarketsByRoles(ctx context.Context, request *ViewMarketsByRolesInput) ([]model.Market, *errors.CustomError)
 }

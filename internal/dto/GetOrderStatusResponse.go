@@ -1,10 +1,10 @@
 package dto
 
-import (
-	"time"
-)
+// import (
+// 	"time"
+// )
 
-type GetOrderStatusResponse struct {
-	Status    string
-	UpdatedAt *time.Time
-}
+// type GetOrderStatusResponse struct {
+// 	Status    string
+// 	UpdatedAt *time.Time
+// }

@@ -1,8 +1,8 @@
 package mapper
 
 import (
-	"OrderService/internal/dto"
 	errs "OrderService/internal/errors"
+	"OrderService/internal/usecase"
 
 	pb "github.com/erdedan1/protocol/proto/order_service/gen"
 	errors "github.com/erdedan1/shared/errs"
@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func CreateOrderRequestFromProto(request *pb.CreateOrderRequest) (*dto.CreateOrderRequest, *errors.CustomError) {
+func CreateOrderRequestFromProto(request *pb.CreateOrderRequest) (*usecase.CreateOrderInput, *errors.CustomError) {
 	if len(request.UserRoles) == 0 {
 		return nil, errs.ErrInvalidArgument
 	}
@@ -25,7 +25,7 @@ func CreateOrderRequestFromProto(request *pb.CreateOrderRequest) (*dto.CreateOrd
 		return nil, errs.ErrInvalidArgument
 	}
 
-	return &dto.CreateOrderRequest{
+	return &usecase.CreateOrderInput{
 		MarketID:  marketId,
 		UserID:    userId,
 		OrderType: request.OrderType,
@@ -35,14 +35,14 @@ func CreateOrderRequestFromProto(request *pb.CreateOrderRequest) (*dto.CreateOrd
 	}, nil
 }
 
-func CreateOrderResponseToProto(resp *dto.CreateOrderResponse) *pb.CreateOrderResponse {
+func CreateOrderResponseToProto(resp *usecase.CreateOrderOutput) *pb.CreateOrderResponse {
 	return &pb.CreateOrderResponse{
 		Id:     resp.ID.String(),
 		Status: m.StringOrderStatusToProto(resp.Status),
 	}
 }
 
-func GetOrderStatusRequestFromProto(request *pb.GetOrderStatusRequest) (*dto.GetOrderStatusRequest, *errors.CustomError) {
+func GetOrderStatusRequestFromProto(request *pb.GetOrderStatusRequest) (*usecase.GetOrderStatusInput, *errors.CustomError) {
 	userId, err := uuid.Parse(request.UserId)
 	if err != nil {
 		return nil, errs.ErrInvalidArgument
@@ -53,13 +53,13 @@ func GetOrderStatusRequestFromProto(request *pb.GetOrderStatusRequest) (*dto.Get
 		return nil, errs.ErrInvalidArgument
 	}
 
-	return &dto.GetOrderStatusRequest{
+	return &usecase.GetOrderStatusInput{
 		UserID:  userId,
 		OrderID: orderId,
 	}, nil
 }
 
-func GetOrderStatusResponseToProto(resp *dto.GetOrderStatusResponse) *pb.GetOrderStatusResponse {
+func GetOrderStatusResponseToProto(resp *usecase.GetOrderStatusOutput) *pb.GetOrderStatusResponse {
 	return &pb.GetOrderStatusResponse{
 		Status:    m.StringOrderStatusToProto(resp.Status),
 		UpdatedAt: m.ToTimestampProto(resp.UpdatedAt),

@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"OrderService/internal/dto"
 	errs "OrderService/internal/errors"
 	"OrderService/internal/model"
 	"OrderService/internal/usecase"
@@ -52,7 +51,7 @@ func New(
 
 const layer = "OrderService"
 
-func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderRequest) (*dto.CreateOrderResponse, *errors.CustomError) {
+func (s *Service) CreateOrder(ctx context.Context, request *usecase.CreateOrderInput) (*usecase.CreateOrderOutput, *errors.CustomError) {
 	const method = "CreateOrder"
 
 	ctx, span := s.tracer.Start(ctx, "OrderService.CreateOrder")
@@ -100,7 +99,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		return nil, err
 	}
 	if len(marketsCache) == 0 || marketsCache == nil {
-		markets, err := s.marketSrv.ViewMarketsByRoles(ctx, user.Roles)
+		markets, err := s.marketSrv.ViewMarketsByRoles(ctx, &usecase.ViewMarketsByRolesInput{UserRoles: user.Roles})
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
@@ -137,7 +136,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		}
 	}
 
-	req, err := dto.CreateOrderRequestToModel(request)
+	req, err := usecase.CreateOrderRequestToModel(request)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -173,13 +172,13 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 
 	go s.publishOrderLifecycle(context.WithoutCancel(ctx), order.ID, order.Status)
 
-	return &dto.CreateOrderResponse{
+	return &usecase.CreateOrderOutput{
 		ID:     order.ID,
 		Status: order.Status.ToString(),
 	}, nil
 }
 
-func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatusRequest) (*dto.GetOrderStatusResponse, *errors.CustomError) {
+func (s *Service) GetOrderStatus(ctx context.Context, request *usecase.GetOrderStatusInput) (*usecase.GetOrderStatusOutput, *errors.CustomError) {
 	const method = "GetOrderStatus"
 
 	ctx, span := s.tracer.Start(ctx, "OrderService.GetOrderStatus")
@@ -229,13 +228,13 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 		"status", order.Status,
 	)
 
-	return &dto.GetOrderStatusResponse{
+	return &usecase.GetOrderStatusOutput{
 		Status:    order.Status.ToString(),
 		UpdatedAt: new(time.Now()),
 	}, nil
 }
 
-func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrderStatusRequest) (<-chan *dto.GetOrderStatusResponse, *errors.CustomError) {
+func (s *Service) SubscribeOrderStatus(ctx context.Context, request *usecase.GetOrderStatusInput) (<-chan *usecase.GetOrderStatusOutput, *errors.CustomError) {
 	const method = "SubscribeOrderStatus"
 
 	ctx, span := s.tracer.Start(ctx, "OrderService.SubscribeOrderStatus")
@@ -246,7 +245,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		attribute.String("order.id", request.OrderID.String()),
 	)
 
-	ch := make(chan *dto.GetOrderStatusResponse)
+	ch := make(chan *usecase.GetOrderStatusOutput)
 
 	order, err := s.orderRepo.GetOrder(ctx, request.OrderID)
 	if err != nil {
@@ -279,7 +278,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	if order.Status == model.StatusClosed {
 		defer close(ch)
 
-		ch <- &dto.GetOrderStatusResponse{Status: order.Status.ToString(), UpdatedAt: &order.UpdatedAt}
+		ch <- &usecase.GetOrderStatusOutput{Status: order.Status.ToString(), UpdatedAt: &order.UpdatedAt}
 
 		span.SetStatus(codes.Ok, "order already completed and closed")
 
@@ -310,7 +309,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	go func(initialStatus model.OrderStatus, initialUpdatedAt time.Time) {
 		defer close(ch)
 
-		ch <- &dto.GetOrderStatusResponse{Status: initialStatus.ToString(), UpdatedAt: &initialUpdatedAt}
+		ch <- &usecase.GetOrderStatusOutput{Status: initialStatus.ToString(), UpdatedAt: &initialUpdatedAt}
 		lastStatus := initialStatus
 
 		for {
@@ -328,7 +327,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 				lastStatus = status
 
 				now := time.Now()
-				ch <- &dto.GetOrderStatusResponse{Status: status.ToString(), UpdatedAt: &now}
+				ch <- &usecase.GetOrderStatusOutput{Status: status.ToString(), UpdatedAt: &now}
 
 				if status == model.StatusClosed {
 					return

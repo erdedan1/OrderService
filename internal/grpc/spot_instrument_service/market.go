@@ -6,6 +6,7 @@ import (
 	"OrderService/config"
 	"OrderService/internal/grpc/spot_instrument_service/mapper"
 	"OrderService/internal/model"
+	"OrderService/internal/usecase"
 	grpc_client "OrderService/pkg/client/grpc"
 
 	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen"
@@ -38,8 +39,8 @@ func (s *marketService) Close() error {
 	return s.conn.Close()
 }
 
-func (s *marketService) ViewMarketsByRoles(ctx context.Context, roles []string) ([]model.Market, *errors.CustomError) {
-	resp, err := s.client.ViewMarketsByRoles(ctx, mapper.ViewMarketsRequestToProto(roles))
+func (s *marketService) ViewMarketsByRoles(ctx context.Context, request *usecase.ViewMarketsByRolesInput) ([]model.Market, *errors.CustomError) {
+	resp, err := s.client.ViewMarketsByRoles(ctx, mapper.ViewMarketsRequestToProto(request))
 	if err != nil {
 		return nil, errs.New(errs.UNAVAILABLE, err.Error())
 	}

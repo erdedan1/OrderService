@@ -3,6 +3,7 @@ package mapper
 import (
 	errs "OrderService/internal/errors"
 	"OrderService/internal/model"
+	"OrderService/internal/usecase"
 
 	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen"
 	errors "github.com/erdedan1/shared/errs"
@@ -10,9 +11,9 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func ViewMarketsRequestToProto(roles []string) *pb.ViewMarketsRequest {
-	result := &pb.ViewMarketsRequest{UserRoles: make([]string, 0, len(roles))}
-	result.UserRoles = append(result.UserRoles, roles...)
+func ViewMarketsRequestToProto(request *usecase.ViewMarketsByRolesInput) *pb.ViewMarketsRequest {
+	result := &pb.ViewMarketsRequest{UserRoles: make([]string, 0, len(request.UserRoles))}
+	result.UserRoles = append(result.UserRoles, request.UserRoles...)
 	return result
 }
 
