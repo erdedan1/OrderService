@@ -61,79 +61,13 @@ func (s *Service) CreateOrder(ctx context.Context, request *usecase.CreateOrderI
 		attribute.String("user.id", request.UserID.String()),
 	)
 
-	user, err := s.userRepo.GetUserById(ctx, request.UserID)
+	user, err := s.getAuthorizedUser(ctx, request)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-
-		s.log.Error(
-			layer, method,
-			err.Error(), err,
-			"user_id", request.UserID,
-		)
 		return nil, err
 	}
-	if !user.CheckRoles(request.UserRoles) {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "no access rights")
 
-		s.log.Error(
-			layer, method,
-			"user has no acces to market",
-			errs.ErrUserHasNoAccessToMarket,
-			"user_id", request.UserID,
-		)
-		return nil, errs.ErrUserHasNoAccessToMarket
-	}
-
-	cacheKey := "markets:" + request.UserID.String()
-	marketsCache, err := s.marketCache.Get(ctx, cacheKey)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-
-		s.log.Error(
-			layer, method,
-			err.Error(), err,
-		)
+	if err := s.ensureMarketsAccess(ctx, request.UserID, &usecase.ViewMarketsByRolesInput{UserRoles: user.Roles}); err != nil {
 		return nil, err
-	}
-	if len(marketsCache) == 0 || marketsCache == nil {
-		markets, err := s.marketSrv.ViewMarketsByRoles(ctx, &usecase.ViewMarketsByRolesInput{UserRoles: user.Roles})
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-
-			s.log.Error(layer, method,
-				err.Error(), err,
-				"user_id", request.UserID,
-			)
-			return nil, err
-		}
-		if len(markets) == 0 {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, "not found markets")
-
-			s.log.Error(
-				layer, method,
-				errs.ErrMarketNotFound.Message,
-				errs.ErrMarketNotFound,
-				"user_id", request.UserID,
-			)
-			return nil, errs.ErrMarketNotFound
-		}
-		err = s.marketCache.Set(ctx, cacheKey, markets, 5*time.Minute)
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-
-			s.log.Error(
-				layer, method,
-				err.Message, err,
-				"user_id", request.UserID,
-			)
-			return nil, err
-		}
 	}
 
 	req, err := usecase.CreateOrderRequestToModel(request)
@@ -176,6 +110,81 @@ func (s *Service) CreateOrder(ctx context.Context, request *usecase.CreateOrderI
 		ID:     order.ID,
 		Status: order.Status.ToString(),
 	}, nil
+}
+
+func (s *Service) getAuthorizedUser(ctx context.Context, request *usecase.CreateOrderInput) (*model.User, *errors.CustomError) {
+	const method = "getAuthorizedUser"
+
+	ctx, span := s.tracer.Start(ctx, "OrderService.getAuthorizedUser")
+	defer span.End()
+
+	user, err := s.userRepo.GetUserById(ctx, request.UserID)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+
+		s.log.Error(layer, method, err.Error(), err, "user_id", request.UserID)
+		return nil, err
+	}
+
+	if !user.CheckRoles(request.UserRoles) {
+		span.RecordError(errs.ErrUserHasNoAccessToMarket)
+		span.SetStatus(codes.Error, "no access rights")
+
+		s.log.Error(layer, method, "user has no acces to market", errs.ErrUserHasNoAccessToMarket, "user_id", request.UserID)
+		return nil, errs.ErrUserHasNoAccessToMarket
+	}
+
+	return user, nil
+}
+
+func (s *Service) ensureMarketsAccess(ctx context.Context, userID uuid.UUID, roles *usecase.ViewMarketsByRolesInput) *errors.CustomError {
+	const method = "ensureMarketsAccess"
+
+	ctx, span := s.tracer.Start(ctx, "OrderService.ensureMarketsAccess")
+	defer span.End()
+
+	cacheKey := "markets:" + userID.String()
+	marketsCache, err := s.marketCache.Get(ctx, cacheKey)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+
+		s.log.Error(layer, method, err.Error(), err)
+		return err
+	}
+
+	if len(marketsCache) != 0 {
+		return nil
+	}
+
+	markets, err := s.marketSrv.ViewMarketsByRoles(ctx, roles)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+
+		s.log.Error(layer, method, err.Error(), err, "user_id", userID)
+		return err
+	}
+
+	if len(markets) == 0 {
+		span.RecordError(errs.ErrMarketNotFound)
+		span.SetStatus(codes.Error, "not found markets")
+
+		s.log.Error(layer, method, errs.ErrMarketNotFound.Message, errs.ErrMarketNotFound, "user_id", userID)
+		return errs.ErrMarketNotFound
+	}
+
+	err = s.marketCache.Set(ctx, cacheKey, markets, 5*time.Minute)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+
+		s.log.Error(layer, method, err.Message, err, "user_id", userID)
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) GetOrderStatus(ctx context.Context, request *usecase.GetOrderStatusInput) (*usecase.GetOrderStatusOutput, *errors.CustomError) {
