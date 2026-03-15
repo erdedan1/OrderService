@@ -101,10 +101,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *usecase.CreateOrderI
 	}
 
 	span.SetStatus(codes.Ok, "order success created")
-
 	s.log.Debug(layer, method, "order success created")
-
-	go s.publishOrderLifecycle(context.WithoutCancel(ctx), order.ID, order.Status)
 
 	return &usecase.CreateOrderOutput{
 		ID:     order.ID,
@@ -254,7 +251,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *usecase.Get
 		attribute.String("order.id", request.OrderID.String()),
 	)
 
-	ch := make(chan *usecase.GetOrderStatusOutput)
+	ch := make(chan *usecase.GetOrderStatusOutput, 1)
 
 	order, err := s.orderRepo.GetOrder(ctx, request.OrderID)
 	if err != nil {
@@ -314,6 +311,8 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *usecase.Get
 		s.log.Error(layer, method, err.Error(), err, "order_id", request.OrderID, "user_id", request.UserID)
 		return nil, err
 	}
+
+	go s.publishOrderLifecycle(context.WithoutCancel(ctx), order.ID, order.Status)
 
 	go func(initialStatus model.OrderStatus, initialUpdatedAt time.Time) {
 		defer close(ch)

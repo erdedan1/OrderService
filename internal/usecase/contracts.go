@@ -11,6 +11,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// тоже самое что и дто по моему мнению
 type CreateOrderInput struct {
 	MarketID  uuid.UUID
 	UserID    uuid.UUID
