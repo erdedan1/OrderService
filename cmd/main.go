@@ -9,8 +9,6 @@ import (
 	tel "github.com/erdedan1/shared/telemetry"
 )
 
-// дико сомневаюсь что логгер и телеметрия должны быть тут, но я сделаль так
-// еще сомневаюсь насчет конструктора конфига телеметрии, но показалось лучшим(это я дурачок обосрите меня)
 func main() {
 	ctx := context.Background()
 
@@ -31,8 +29,12 @@ func main() {
 	}
 	defer shutdown(ctx)
 
-	orderService := app.New(cfg, logger)
-	if err := orderService.Start(ctx); err != nil {
+	app, err := app.Build(cfg, logger)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := app.Start(ctx); err != nil {
 		panic(err)
 	}
 }

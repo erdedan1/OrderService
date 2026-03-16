@@ -17,93 +17,69 @@ import (
 	"OrderService/pkg/cache"
 
 	log "github.com/erdedan1/shared/logger"
-	"go.opentelemetry.io/otel"
-
-	"google.golang.org/grpc"
 )
 
 type App struct {
 	cfg        *config.Config
-	grpcServer *grpc.Server
+	grpcServer *order_service.GRPCServer
 	log        log.Logger
 }
 
-func New(cfg *config.Config, log log.Logger) *App {
+func New(cfg *config.Config, grpcServer *order_service.GRPCServer, log log.Logger) *App {
 	return &App{
-		cfg: cfg,
-		log: log,
+		cfg:        cfg,
+		grpcServer: grpcServer,
+		log:        log,
 	}
 }
 
-const layer = "App"
+func Build(cfg *config.Config, log log.Logger) (*App, error) {
 
-func (a *App) Start(ctx context.Context) error {
-	const method = "Start"
-	tracer := otel.Tracer("order-service")
-	_, span := tracer.Start(ctx, "service.start")
-	span.End()
-	a.log.Info(layer, method, "starting service")
+	redis := cache.NewRedisClient(cfg)
 
-	marketService, err := spot_instrument_service.NewMarketService(a.cfg)
+	orderRepo := orderRepo.NewInMemoryRepo(log)
+	userRepo := user.NewRepo(log)
+
+	subscriber := orderStatusRepo.NewRedisSubscriber(redis, log)
+	publisher := orderStatusRepo.NewRedisPublisher(redis, log)
+
+	marketService, err := spot_instrument_service.NewMarketService(cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer marketService.Close()
 
-	redisClient := cache.NewRedisClient(a.cfg)
-	orderRepository := orderRepo.NewInMemoryRepo(a.log)
-	orderStatusSubscriber := orderStatusRepo.NewRedisSubscriber(redisClient, a.log)
-	orderStatusPublisher := orderStatusRepo.NewRedisPublisher(redisClient, a.log)
-	userRepository := user.NewRepo(a.log)
-	marketCache := market.NewMarketsCache(redisClient, a.log)
+	marketCache := market.NewMarketsCache(redis, log)
+
 	orderService := orderSrv.New(
-		orderRepository,
-		userRepository,
+		orderRepo,
+		userRepo,
 		marketCache,
 		marketService,
-		orderStatusSubscriber,
-		orderStatusPublisher,
-		a.log,
+		subscriber,
+		publisher,
+		log,
 	)
 
-	serverErrCh := make(chan error, 1)
-
-	grpcServer, err := order_service.NewGRPCServer(a.cfg.GRPCServer.Address, orderService, a.log)
+	grpcServer, err := order_service.NewGRPCServer("asd", orderService, log)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	go func() {
-		serverErrCh <- grpcServer.Start()
-	}()
+	return New(cfg, grpcServer, log), nil
+}
 
-	a.log.Info(layer, method, "service work")
+func (a *App) Start(ctx context.Context) error {
+
+	a.grpcServer.Start()
 
 	quit := make(chan os.Signal, 1)
-
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	defer signal.Stop(quit)
-
-	a.log.Info(layer, method, "waiting for shutdown signal")
 
 	select {
 	case <-ctx.Done():
-		a.log.Info(layer, method, "context cancelled")
-	case sig := <-quit:
-		a.log.Info(layer, method, "shutdown signal received", "signal", sig.String())
-	case err := <-serverErrCh:
-		if err != nil {
-			return err
-		}
-		return nil
+	case <-quit:
 	}
 
-	grpcServer.Stop()
-
-	if err := <-serverErrCh; err != nil && !order_service.IsExpectedStop(err) {
-		return err
-	}
-
-	a.log.Info(layer, method, "service stopped gracefully")
+	a.grpcServer.Stop()
 	return nil
 }
