@@ -21,3 +21,11 @@ var (
 	ErrFailedDeserializeRedis = errs.New(errs.INTERNAL, "failed to deserialize markets redis")
 	ErrDeleteRedis            = errs.New(errs.UNAVAILABLE, "failed to delete redis key")
 )
+
+//ratelimiter
+//cyrcle braker
+//version proto
+//STATSON_THE_WAY в прото
+//посмотреть утечки в канале stream
+//gracefull shut down grpc service
+//инвалидация кеша

@@ -3,10 +3,10 @@ package main
 import (
 	"OrderService/config"
 	"OrderService/internal/app"
+	"OrderService/internal/telemetry"
 	"context"
 
 	log "github.com/erdedan1/shared/logger"
-	tel "github.com/erdedan1/shared/telemetry"
 )
 
 func main() {
@@ -22,12 +22,12 @@ func main() {
 		panic(err)
 	}
 	defer logger.Sync()
-
-	shutdown, err := tel.New(ctx, config.NewTelemetryConfig(cfg.Infrastructure.Observability.Telemetry))
+	//вынести в апп ранер
+	tp, err := telemetry.New(ctx, cfg.Infrastructure.Observability.Telemetry)
 	if err != nil {
 		panic(err)
 	}
-	defer shutdown(ctx)
+	defer tp.Shutdown(ctx)
 
 	app, err := app.Build(cfg, logger)
 	if err != nil {
