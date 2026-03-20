@@ -10,7 +10,6 @@ import (
 	errors "github.com/erdedan1/shared/errs"
 	log "github.com/erdedan1/shared/logger"
 	"github.com/google/uuid"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -22,11 +21,11 @@ type RedisPublisher struct {
 	tracer trace.Tracer
 }
 
-func NewRedisPublisher(client cache.RedisClient, logger log.Logger) *RedisPublisher {
+func NewRedisPublisher(client cache.RedisClient, logger log.Logger, tp trace.TracerProvider) *RedisPublisher {
 	return &RedisPublisher{
 		client: client,
 		log:    logger,
-		tracer: otel.Tracer("order-service/RedisOrderStatusPublisher"),
+		tracer: tp.Tracer("order-service/RedisOrderStatusPublisher"),
 	}
 }
 

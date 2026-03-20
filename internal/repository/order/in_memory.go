@@ -11,7 +11,6 @@ import (
 	errors "github.com/erdedan1/shared/errs"
 	log "github.com/erdedan1/shared/logger"
 	"github.com/google/uuid"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -24,12 +23,12 @@ type InMemoryRepo struct {
 	tracer trace.Tracer
 }
 
-func NewInMemoryRepo(logger log.Logger) *InMemoryRepo {
+func NewInMemoryRepo(logger log.Logger, tp trace.TracerProvider) *InMemoryRepo {
 	return &InMemoryRepo{
 		Orders: make(map[uuid.UUID]*model.Order),
 		mu:     &sync.RWMutex{},
 		log:    logger,
-		tracer: otel.Tracer("order-service/InMemoryRepo"),
+		tracer: tp.Tracer("order-service/InMemoryRepo"),
 	}
 }
 

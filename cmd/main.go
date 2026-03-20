@@ -22,14 +22,14 @@ func main() {
 		panic(err)
 	}
 	defer logger.Sync()
-	//вынести в апп ранер
+
 	tp, err := telemetry.New(ctx, cfg.Infrastructure.Observability.Telemetry)
 	if err != nil {
 		panic(err)
 	}
 	defer tp.Shutdown(ctx)
 
-	app, err := app.Build(cfg, logger)
+	app, err := app.Build(cfg, logger, tp)
 	if err != nil {
 		panic(err)
 	}

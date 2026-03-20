@@ -11,15 +11,11 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
-func New(ctx context.Context, cfg config.Telemetry) (*sdktrace.TracerProvider, error) {
-	if !cfg.Enabled {
-		return nil, nil
-	}
-
+func New(ctx context.Context, cfg config.Telemetry) (*trace.TracerProvider, error) {
 	// метаданные сервиса, какой сервис, его версия, его окружение prod?stage?dev?)
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
@@ -43,23 +39,23 @@ func New(ctx context.Context, cfg config.Telemetry) (*sdktrace.TracerProvider, e
 	}
 
 	// сколько запросов трассировать 1.0 - 100%
-	var sampler sdktrace.Sampler
+	var sampler trace.Sampler
 	if cfg.Sampling <= 0 {
-		sampler = sdktrace.NeverSample()
+		sampler = trace.NeverSample()
 	} else if cfg.Sampling >= 1 {
-		sampler = sdktrace.AlwaysSample()
+		sampler = trace.AlwaysSample()
 	} else {
-		sampler = sdktrace.TraceIDRatioBased(cfg.Sampling)
+		sampler = trace.TraceIDRatioBased(cfg.Sampling)
 	}
 
 	// инициализация
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exporter,
-			sdktrace.WithMaxExportBatchSize(512),     //размер батча
-			sdktrace.WithBatchTimeout(5*time.Second), //отправка батча через 5 сек если не накопился
+	tp := trace.NewTracerProvider(
+		trace.WithBatcher(exporter,
+			trace.WithMaxExportBatchSize(512),     //размер батча
+			trace.WithBatchTimeout(5*time.Second), //отправка батча через 5 сек если не накопился
 		),
-		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sampler),
+		trace.WithResource(res),
+		trace.WithSampler(sampler),
 	)
 
 	otel.SetTracerProvider(tp)

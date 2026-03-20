@@ -13,7 +13,6 @@ import (
 	error "github.com/erdedan1/shared/errs"
 	log "github.com/erdedan1/shared/logger"
 	"github.com/go-redis/redis/v8"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -25,11 +24,11 @@ type redisMarketsCache struct {
 	tracer trace.Tracer
 }
 
-func NewMarketsCache(client cache.RedisClient, log log.Logger) *redisMarketsCache {
+func NewMarketsCache(client cache.RedisClient, log log.Logger, tp trace.TracerProvider) *redisMarketsCache {
 	return &redisMarketsCache{
 		client: client,
 		log:    log,
-		tracer: otel.Tracer("order-service/RedisCacheRepo"),
+		tracer: tp.Tracer("order-service/RedisCacheRepo"),
 	}
 }
 

@@ -2,7 +2,6 @@ package order
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func preparingTests(t *testing.T) (
@@ -45,6 +45,7 @@ func preparingTests(t *testing.T) (
 		subscriber,
 		publisher,
 		logger,
+		noop.NewTracerProvider(),
 	)
 	return service, orderRepo, userRepo, cache, marketSrv, subscriber, publisher
 }
@@ -124,7 +125,7 @@ func TestCreateOrder_UserRepo_Error(t *testing.T) {
 	userRepo.On("GetUserById", mock.Anything, userID).
 		Return(nil, errors.ErrUserNotFound)
 
-	res, err1 := service.CreateOrder(ctx, &usecase.CreateOrderInput{
+	res, err := service.CreateOrder(ctx, &usecase.CreateOrderInput{
 		MarketID:  uuid.New(),
 		UserID:    userID,
 		OrderType: "Test_type",
@@ -133,13 +134,43 @@ func TestCreateOrder_UserRepo_Error(t *testing.T) {
 		Quantity:  1,
 	})
 
-	fmt.Println(err1)
 	assert.Nil(t, res)
-	assert.Error(t, err1)
+	assert.Error(t, err)
 
 	userRepo.AssertExpectations(t)
 }
 
+func TestCreateOrder_Market_Not_Found(t *testing.T) {
+	service, _, userRepo, cache, marketSrv, _, _ := preparingTests(t)
+	ctx := context.Background()
+
+	userID := uuid.MustParse("1179803e-06f0-4369-b94f-14e26ec190a3")
+	userRoles := []string{"USER_ROLE_TRADER"}
+	user := &model.User{ID: userID, Roles: []string{"USER_ROLE_TRADER"}}
+
+	userRepo.On("GetUserById", mock.Anything, userID).
+		Return(user, nil)
+	cache.On("Get", mock.Anything, mock.Anything).
+		Return(nil, nil)
+	marketSrv.On("ViewMarketsByRoles", mock.Anything, mock.Anything).
+		Return(nil, errors.ErrMarketNotFound)
+
+	res, err := service.CreateOrder(ctx, &usecase.CreateOrderInput{
+		MarketID:  uuid.New(),
+		UserID:    userID,
+		OrderType: "Test_type",
+		Price:     "120",
+		UserRoles: userRoles,
+		Quantity:  1,
+	})
+
+	assert.Nil(t, res)
+	assert.Error(t, err)
+
+	userRepo.AssertExpectations(t)
+	cache.AssertExpectations(t)
+	marketSrv.AssertExpectations(t)
+}
 func TestGetOrderStatus_Success(t *testing.T) {
 	service, orderRepo, _, _, _, _, _ := preparingTests(t)
 	ctx := context.Background()

@@ -12,14 +12,16 @@ import (
 	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen"
 	"github.com/erdedan1/shared/errs"
 	errors "github.com/erdedan1/shared/errs"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type marketService struct {
 	client pb.MarketServiceClient
 	conn   grpc_client.IGRPCClient
+	trace  trace.Tracer
 }
 
-func NewMarketService(cfg *config.Config) (*marketService, error) {
+func NewMarketService(cfg *config.Config, tp trace.TracerProvider) (*marketService, error) {
 	conn, err := SetupSpotInstrumentClient(cfg)
 	if err != nil {
 		return nil, err
@@ -28,6 +30,7 @@ func NewMarketService(cfg *config.Config) (*marketService, error) {
 	return &marketService{
 		client: pb.NewMarketServiceClient(conn),
 		conn:   conn,
+		trace:  tp.Tracer("order-service/MarketService"),
 	}, nil
 }
 

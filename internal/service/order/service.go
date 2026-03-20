@@ -11,7 +11,6 @@ import (
 	errors "github.com/erdedan1/shared/errs"
 	log "github.com/erdedan1/shared/logger"
 	"github.com/google/uuid"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -36,6 +35,7 @@ func New(
 	orderStatusSubscriber usecase.OrderStatusSubscriber,
 	orderStatusPublisher usecase.OrderStatusPublisher,
 	log log.Logger,
+	tp trace.TracerProvider,
 ) *Service {
 	return &Service{
 		orderRepo:             repo,
@@ -45,7 +45,7 @@ func New(
 		orderStatusSubscriber: orderStatusSubscriber,
 		orderStatusPublisher:  orderStatusPublisher,
 		log:                   log,
-		tracer:                otel.Tracer("order-service/Service"),
+		tracer:                tp.Tracer("order-service/Service"),
 	}
 }
 

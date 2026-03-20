@@ -12,6 +12,5 @@ type Telemetry struct {
 
 	Host     string  `env:"TELEMETRY_HOST" validate:"required"`
 	Port     string  `env:"TELEMETRY_PORT" validate:"required"`
-	Enabled  bool    `env:"TELEMETRY_ENABLED" validate:"required"`
 	Sampling float64 `env:"TELEMETRY_SAMPLING" validate:"required"`
 }

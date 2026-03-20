@@ -22,8 +22,9 @@ var (
 	ErrDeleteRedis            = errs.New(errs.UNAVAILABLE, "failed to delete redis key")
 )
 
+//возвращать 408 ошибка а не 500 в каком то методе посмотреть видео
 //ratelimiter
-//cyrcle braker
+//cyrcle breaker
 //version proto
 //STATSON_THE_WAY в прото
 //посмотреть утечки в канале stream
