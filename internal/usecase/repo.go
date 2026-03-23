@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"OrderService/internal/dto"
 	"OrderService/internal/model"
 
 	errors "github.com/erdedan1/shared/errs"
@@ -25,8 +26,8 @@ type UserRepo interface {
 
 //go:generate mockery --name=MarketCacheRepo --output=../../mocks --outpkg=mocks
 type MarketCacheRepo interface {
-	Set(ctx context.Context, key string, value []model.Market, ttl time.Duration) *errors.CustomError
-	Get(ctx context.Context, key string) ([]model.Market, *errors.CustomError)
+	Set(ctx context.Context, key string, value []dto.ViewMarketsResponse, ttl time.Duration) *errors.CustomError
+	Get(ctx context.Context, key string) ([]dto.ViewMarketsResponse, *errors.CustomError)
 	Del(ctx context.Context, key string) *errors.CustomError
 }
 

@@ -11,7 +11,7 @@ import (
 	"OrderService/internal/grpc/order_service"
 	"OrderService/internal/grpc/spot_instrument_service"
 	"OrderService/internal/repository/market"
-	orderRepo "OrderService/internal/repository/order"
+	postgres "OrderService/internal/repository/order/postgres"
 	orderStatusRepo "OrderService/internal/repository/order_status"
 	"OrderService/internal/repository/user"
 	orderSrv "OrderService/internal/service/order"
@@ -40,7 +40,7 @@ func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, 
 	ctx := context.Background()
 	redis := cache.NewRedisClient(cfg)
 
-	orderRepo, err := orderRepo.NewPostgresRepo(ctx, log, cfg.PostgresDB, tp)
+	orderRepo, err := postgres.New(ctx, log, cfg.PostgresDB, tp)
 	if err != nil {
 		return nil, err
 	}

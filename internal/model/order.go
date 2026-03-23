@@ -23,46 +23,46 @@ type Order struct {
 type OrderStatus string
 
 const (
-	StatusCreated       OrderStatus = "ORDER_STATUS_CREATED"
-	StatusPending       OrderStatus = "ORDER_STATUS_PENDING"
-	StatusWaitSeller    OrderStatus = "ORDER_STATUS_WAIT_SELLER"
-	StatusPaid          OrderStatus = "ORDER_STATUS_PAID"
-	StatusOnHold        OrderStatus = "ORDER_STATUS_ON_HOLD"
-	StatusProcessing    OrderStatus = "ORDER_STATUS_PROCESSING"
-	StatusPacked        OrderStatus = "ORDER_STATUS_PACKED"
-	StatusOutOfDelivery OrderStatus = "ORDER_STATUS_OUT_OF_DELIVERY"
-	StatusOnTheWay      OrderStatus = "ORDER_STATUS_ON_THE_WAY"
-	StatusDelivered     OrderStatus = "ORDER_STATUS_DELIVERED"
-	StatusClosed        OrderStatus = "ORDER_STATUS_CLOSED"
-	StatusUnspecified   OrderStatus = "ORDER_STATUS_UNSPECIFIED"
+	StatusCreated       OrderStatus = "CREATED"
+	StatusPending       OrderStatus = "PENDING"
+	StatusWaitSeller    OrderStatus = "WAIT_SELLER"
+	StatusPaid          OrderStatus = "PAID"
+	StatusOnHold        OrderStatus = "ON_HOLD"
+	StatusProcessing    OrderStatus = "PROCESSING"
+	StatusPacked        OrderStatus = "PACKED"
+	StatusOutOfDelivery OrderStatus = "OUT_OF_DELIVERY"
+	StatusOnTheWay      OrderStatus = "ON_THE_WAY"
+	StatusDelivered     OrderStatus = "DELIVERED"
+	StatusClosed        OrderStatus = "CLOSED"
+	StatusUnspecified   OrderStatus = "UNSPECIFIED"
 )
 
 func (o OrderStatus) ToString() string {
 	switch o {
 	case StatusCreated:
-		return "ORDER_STATUS_CREATED"
+		return "CREATED"
 	case StatusPending:
-		return "ORDER_STATUS_PENDING"
+		return "PENDING"
 	case StatusWaitSeller:
-		return "ORDER_STATUS_WAIT_SELLER"
+		return "WAIT_SELLER"
 	case StatusPaid:
-		return "ORDER_STATUS_PAID"
+		return "PAID"
 	case StatusOnHold:
-		return "ORDER_STATUS_ON_HOLD"
+		return "ON_HOLD"
 	case StatusProcessing:
-		return "ORDER_STATUS_PROCESSING"
+		return "PROCESSING"
 	case StatusPacked:
-		return "ORDER_STATUS_PACKED"
+		return "PACKED"
 	case StatusOutOfDelivery:
-		return "ORDER_STATUS_OUT_OF_DELIVERY"
+		return "OUT_OF_DELIVERY"
 	case StatusOnTheWay:
-		return "ORDER_STATUS_ON_THE_WAY"
+		return "ON_THE_WAY"
 	case StatusDelivered:
-		return "ORDER_STATUS_DELIVERED"
+		return "DELIVERED"
 	case StatusClosed:
-		return "ORDER_STATUS_CLOSED"
+		return "CLOSED"
 	default:
-		return "ORDER_STATUS_UNSPECIFIED"
+		return "UNSPECIFIED"
 	}
 }
 
@@ -90,5 +90,23 @@ func NextOrderStatus(current OrderStatus) (OrderStatus, bool) {
 		return StatusClosed, true
 	default:
 		return current, false
+	}
+}
+
+func NewOrder(
+	userID, marketID uuid.UUID,
+	quantity, price int64,
+	orderType string,
+) *Order {
+	currentPrice := decimal.NewFromInt(price)
+
+	return &Order{
+		UserID:    userID,
+		MarketID:  marketID,
+		Quantity:  quantity,
+		Type:      orderType,
+		Status:    StatusCreated,
+		Price:     currentPrice,
+		CreatedAt: time.Now(),
 	}
 }

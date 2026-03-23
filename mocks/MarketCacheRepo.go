@@ -3,12 +3,12 @@
 package mocks
 
 import (
+	dto "OrderService/internal/dto"
 	context "context"
 
 	errs "github.com/erdedan1/shared/errs"
-	mock "github.com/stretchr/testify/mock"
 
-	model "OrderService/internal/model"
+	mock "github.com/stretchr/testify/mock"
 
 	time "time"
 )
@@ -39,23 +39,23 @@ func (_m *MarketCacheRepo) Del(ctx context.Context, key string) *errs.CustomErro
 }
 
 // Get provides a mock function with given fields: ctx, key
-func (_m *MarketCacheRepo) Get(ctx context.Context, key string) ([]model.Market, *errs.CustomError) {
+func (_m *MarketCacheRepo) Get(ctx context.Context, key string) ([]dto.ViewMarketsResponse, *errs.CustomError) {
 	ret := _m.Called(ctx, key)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Get")
 	}
 
-	var r0 []model.Market
+	var r0 []dto.ViewMarketsResponse
 	var r1 *errs.CustomError
-	if rf, ok := ret.Get(0).(func(context.Context, string) ([]model.Market, *errs.CustomError)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]dto.ViewMarketsResponse, *errs.CustomError)); ok {
 		return rf(ctx, key)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) []model.Market); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) []dto.ViewMarketsResponse); ok {
 		r0 = rf(ctx, key)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]model.Market)
+			r0 = ret.Get(0).([]dto.ViewMarketsResponse)
 		}
 	}
 
@@ -71,7 +71,7 @@ func (_m *MarketCacheRepo) Get(ctx context.Context, key string) ([]model.Market,
 }
 
 // Set provides a mock function with given fields: ctx, key, value, ttl
-func (_m *MarketCacheRepo) Set(ctx context.Context, key string, value []model.Market, ttl time.Duration) *errs.CustomError {
+func (_m *MarketCacheRepo) Set(ctx context.Context, key string, value []dto.ViewMarketsResponse, ttl time.Duration) *errs.CustomError {
 	ret := _m.Called(ctx, key, value, ttl)
 
 	if len(ret) == 0 {
@@ -79,7 +79,7 @@ func (_m *MarketCacheRepo) Set(ctx context.Context, key string, value []model.Ma
 	}
 
 	var r0 *errs.CustomError
-	if rf, ok := ret.Get(0).(func(context.Context, string, []model.Market, time.Duration) *errs.CustomError); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, []dto.ViewMarketsResponse, time.Duration) *errs.CustomError); ok {
 		r0 = rf(ctx, key, value, ttl)
 	} else {
 		if ret.Get(0) != nil {

@@ -6,7 +6,7 @@ import (
 
 	"OrderService/internal/usecase"
 
-	pbOrder "github.com/erdedan1/protocol/proto/order_service/gen"
+	pbOrder "github.com/erdedan1/protocol/proto/order_service/gen/v2"
 	"github.com/erdedan1/shared/errs"
 	pbLogger "github.com/erdedan1/shared/interceptors/logger"
 	"github.com/erdedan1/shared/interceptors/recovery"

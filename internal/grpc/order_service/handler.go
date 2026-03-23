@@ -3,10 +3,10 @@ package order_service
 import (
 	"context"
 
-	"OrderService/internal/grpc/order_service/mapper"
+	"OrderService/internal/dto"
 	"OrderService/internal/usecase"
 
-	pb "github.com/erdedan1/protocol/proto/order_service/gen"
+	pb "github.com/erdedan1/protocol/proto/order_service/gen/v2"
 	log "github.com/erdedan1/shared/logger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -39,7 +39,7 @@ func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderReques
 	ctx, span := h.tracer.Start(ctx, "OrderHandler.CreateOrder")
 	defer span.End()
 
-	requestDto, err := mapper.CreateOrderRequestFromProto(request)
+	dto, err := new(dto.CreateOrderRequest).FromProto(request)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
@@ -51,7 +51,7 @@ func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderReques
 		return nil, status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
 
-	order, err := h.orderService.CreateOrder(ctx, requestDto)
+	order, err := h.orderService.CreateOrder(ctx, dto)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
@@ -65,7 +65,7 @@ func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderReques
 
 	span.SetStatus(codes.Ok, "order success created")
 
-	return mapper.CreateOrderResponseToProto(order), nil
+	return order.ToProto(), nil
 }
 
 func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatusRequest) (*pb.GetOrderStatusResponse, error) {
@@ -74,7 +74,7 @@ func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatus
 	ctx, span := h.tracer.Start(ctx, "OrderHandler.GetOrderStatus")
 	defer span.End()
 
-	requestDto, err := mapper.GetOrderStatusRequestFromProto(request)
+	dto, err := new(dto.GetOrderStatusRequest).FromProto(request)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
@@ -86,7 +86,7 @@ func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatus
 		return nil, status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
 
-	order, err := h.orderService.GetOrderStatus(ctx, requestDto)
+	order, err := h.orderService.GetOrderStatus(ctx, dto)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
@@ -100,7 +100,7 @@ func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatus
 
 	span.SetStatus(codes.Ok, "get order success")
 
-	return mapper.GetOrderStatusResponseToProto(order), nil
+	return order.ToProto(), nil
 }
 
 func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream pb.OrderService_SubscribeOrderStatusServer) error {
@@ -111,7 +111,7 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 	ctx, span := h.tracer.Start(ctx, "OrderHandler.SubscribeOrderStatus")
 	defer span.End()
 
-	requestDto, err := mapper.GetOrderStatusRequestFromProto(request)
+	dto, err := new(dto.GetOrderStatusRequest).FromProto(request)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
@@ -126,7 +126,7 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 	ctx, cancel := context.WithCancel(stream.Context())
 	defer cancel()
 
-	ch, err := h.orderService.SubscribeOrderStatus(ctx, requestDto)
+	ch, err := h.orderService.SubscribeOrderStatus(ctx, dto)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
@@ -148,7 +148,7 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 				return nil
 			}
 
-			err := stream.Send(mapper.GetOrderStatusResponseToProto(order))
+			err := stream.Send(order.ToProto())
 			if err != nil {
 				span.RecordError(err)
 				span.SetStatus(codes.Error, err.Error())

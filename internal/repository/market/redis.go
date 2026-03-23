@@ -6,8 +6,8 @@ import (
 	"errors"
 	"time"
 
+	"OrderService/internal/dto"
 	errs "OrderService/internal/errors"
-	"OrderService/internal/model"
 	"OrderService/pkg/cache"
 
 	error "github.com/erdedan1/shared/errs"
@@ -34,7 +34,7 @@ func NewMarketsCache(client cache.RedisClient, log log.Logger, tp trace.TracerPr
 
 const layer = "RedisMarketCache"
 
-func (c *redisMarketsCache) Set(ctx context.Context, key string, value []model.Market, ttl time.Duration) *error.CustomError {
+func (c *redisMarketsCache) Set(ctx context.Context, key string, value []dto.ViewMarketsResponse, ttl time.Duration) *error.CustomError {
 	const method = "Set"
 	ctx, span := c.tracer.Start(ctx, "OrderRedisRepo.Set")
 	defer span.End()
@@ -68,7 +68,7 @@ func (c *redisMarketsCache) Set(ctx context.Context, key string, value []model.M
 	return nil
 }
 
-func (c *redisMarketsCache) Get(ctx context.Context, key string) ([]model.Market, *error.CustomError) {
+func (c *redisMarketsCache) Get(ctx context.Context, key string) ([]dto.ViewMarketsResponse, *error.CustomError) {
 	const method = "Get"
 
 	ctx, span := c.tracer.Start(ctx, "OrderRedisRepo.Get")
@@ -96,7 +96,7 @@ func (c *redisMarketsCache) Get(ctx context.Context, key string) ([]model.Market
 		return nil, errs.ErrUnavailableDataRedis
 	}
 
-	var result []model.Market
+	var result []dto.ViewMarketsResponse
 	if err := json.Unmarshal([]byte(val), &result); err != nil {
 		span.RecordError(errs.ErrFailedDeserializeRedis)
 		span.SetStatus(codes.Error, errs.ErrFailedDeserializeRedis.Message)

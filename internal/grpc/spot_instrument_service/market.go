@@ -4,12 +4,10 @@ import (
 	"context"
 
 	"OrderService/config"
-	"OrderService/internal/grpc/spot_instrument_service/mapper"
-	"OrderService/internal/model"
-	"OrderService/internal/usecase"
+	"OrderService/internal/dto"
 	grpc_client "OrderService/pkg/client/grpc"
 
-	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen"
+	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen/v2"
 	"github.com/erdedan1/shared/errs"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -41,15 +39,15 @@ func (s *marketService) Close() error {
 	return s.conn.Close()
 }
 
-func (s *marketService) ViewMarketsByRoles(ctx context.Context, request *usecase.ViewMarketsByRolesInput) ([]model.Market, *errs.CustomError) {
-	resp, err := s.client.ViewMarketsByRoles(ctx, mapper.ViewMarketsRequestToProto(request))
+func (s *marketService) ViewMarketsByRoles(ctx context.Context, request *dto.ViewMarketsRequest) ([]dto.ViewMarketsResponse, *errs.CustomError) {
+	resp, err := s.client.ViewMarketsByRoles(ctx, request.ToProto())
 	if err != nil {
 		return nil, errs.New(errs.UNAVAILABLE, err.Error(), err)
 	}
 
-	marketsResp := make([]model.Market, 0, len(resp.Markets))
+	marketsResp := make([]dto.ViewMarketsResponse, 0, len(resp.Markets))
 	for _, m := range resp.Markets {
-		dtoM, err := mapper.ViewMarketsResponseFromProto(m)
+		dtoM, err := new(dto.ViewMarketsResponse).FromProto(m)
 		if err != nil {
 			return nil, err
 		}

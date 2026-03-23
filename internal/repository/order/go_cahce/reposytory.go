@@ -16,26 +16,26 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type InMemoryRepo struct {
+type Repo struct {
 	Orders map[uuid.UUID]*model.Order
 	mu     *sync.RWMutex
 	log    log.Logger
 	tracer trace.Tracer
 }
 
-func NewInMemoryRepo(logger log.Logger, tp trace.TracerProvider) *InMemoryRepo {
-	return &InMemoryRepo{
+func NewRepo(logger log.Logger, tp trace.TracerProvider) *Repo {
+	return &Repo{
 		Orders: make(map[uuid.UUID]*model.Order),
 		mu:     &sync.RWMutex{},
 		log:    logger,
-		tracer: tp.Tracer("order-service/InMemoryRepo"),
+		tracer: tp.Tracer("order-service/Repo"),
 	}
 }
 
-const layerInMemory = "OrderInMemoryRepo"
+const layerInMemory = "OrderRepo"
 
-func (r *InMemoryRepo) CreateOrder(ctx context.Context, order *model.Order) (*model.Order, *errors.CustomError) {
-	ctx, span := r.tracer.Start(ctx, "OrderInMemoryRepo.CreateOrder")
+func (r *Repo) CreateOrder(ctx context.Context, order *model.Order) (*model.Order, *errors.CustomError) {
+	ctx, span := r.tracer.Start(ctx, "OrderRepo.CreateOrder")
 	defer span.End()
 
 	r.mu.Lock()
@@ -61,10 +61,10 @@ func (r *InMemoryRepo) CreateOrder(ctx context.Context, order *model.Order) (*mo
 	return order, nil
 }
 
-func (r *InMemoryRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, *errors.CustomError) {
+func (r *Repo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, *errors.CustomError) {
 	const method = "GetOrder"
 
-	ctx, span := r.tracer.Start(ctx, "OrderInMemoryRepo.GetOrder")
+	ctx, span := r.tracer.Start(ctx, "OrderRepo.GetOrder")
 	defer span.End()
 
 	r.mu.RLock()
@@ -95,10 +95,10 @@ func (r *InMemoryRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order
 	return nil, errs.ErrOrderNotFound
 }
 
-func (r *InMemoryRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, status model.OrderStatus) *errors.CustomError {
+func (r *Repo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, status model.OrderStatus) *errors.CustomError {
 	const method = "UpdateOrder"
 
-	ctx, span := r.tracer.Start(ctx, "OrderInMemoryRepo.UpdateOrder")
+	ctx, span := r.tracer.Start(ctx, "OrderRepo.UpdateOrder")
 	defer span.End()
 
 	r.mu.Lock()
