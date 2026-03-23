@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"OrderService/config"
 	errs "OrderService/internal/errors"
 	"OrderService/internal/model"
 	"OrderService/internal/usecase"
@@ -25,6 +26,7 @@ type Service struct {
 	orderStatusPublisher  usecase.OrderStatusPublisher
 	log                   log.Logger
 	tracer                trace.Tracer
+	cfg                   config.Config
 }
 
 func New(
@@ -36,6 +38,7 @@ func New(
 	orderStatusPublisher usecase.OrderStatusPublisher,
 	log log.Logger,
 	tp trace.TracerProvider,
+	cfg config.Config,
 ) *Service {
 	return &Service{
 		orderRepo:             repo,
@@ -46,6 +49,7 @@ func New(
 		orderStatusPublisher:  orderStatusPublisher,
 		log:                   log,
 		tracer:                tp.Tracer("order-service/Service"),
+		cfg:                   cfg,
 	}
 }
 
@@ -172,7 +176,7 @@ func (s *Service) ensureMarketsAccess(ctx context.Context, userID uuid.UUID, rol
 		return errs.ErrMarketNotFound
 	}
 
-	err = s.marketCache.Set(ctx, cacheKey, markets, 5*time.Minute)
+	err = s.marketCache.Set(ctx, cacheKey, markets, s.cfg.Infrastructure.RedisConfig.TTL)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

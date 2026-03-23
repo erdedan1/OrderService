@@ -15,7 +15,6 @@ import (
 	log "github.com/erdedan1/shared/logger"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -27,7 +26,7 @@ type PostgresRepo struct {
 	tracer trace.Tracer
 }
 
-func NewPostgresRepo(ctx context.Context, log log.Logger, config config.PostgresDB) (*PostgresRepo, *errorz.CustomError) {
+func NewPostgresRepo(ctx context.Context, log log.Logger, config config.PostgresDB, tp trace.TracerProvider) (*PostgresRepo, *errorz.CustomError) {
 	db, err := connection.New(ctx, config)
 	if err != nil {
 		return nil, err
@@ -36,7 +35,7 @@ func NewPostgresRepo(ctx context.Context, log log.Logger, config config.Postgres
 	return &PostgresRepo{
 		db:     db,
 		log:    log,
-		tracer: otel.Tracer("order-service/PostgresRepo"),
+		tracer: tp.Tracer("order-service/PostgresRepo"),
 	}, nil
 }
 
@@ -66,7 +65,7 @@ func (r *PostgresRepo) CreateOrder(ctx context.Context, order *model.Order) (*mo
 			err.Error(), err,
 			"order_id", order.ID,
 		)
-		return nil, errorz.New(errorz.INTERNAL, err.Error())
+		return nil, errorz.New(errorz.INTERNAL, err.Error(), err)
 	}
 
 	span.SetStatus(codes.Ok, "order success created")
@@ -112,7 +111,7 @@ func (r *PostgresRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order
 			err.Error(), err,
 			"order_id", id,
 		)
-		return nil, errorz.New(errorz.INTERNAL, err.Error())
+		return nil, errorz.New(errorz.INTERNAL, err.Error(), err)
 	}
 
 	span.SetStatus(codes.Ok, "get order success")
@@ -147,7 +146,7 @@ func (r *PostgresRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 			err.Error(), err,
 			"order_id", id,
 		)
-		return errorz.New(errorz.INTERNAL, err.Error())
+		return errorz.New(errorz.INTERNAL, err.Error(), err)
 	}
 
 	rowsAffected, err := res.RowsAffected()
@@ -161,7 +160,7 @@ func (r *PostgresRepo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, stat
 			err.Error(), err,
 			"order_id", id,
 		)
-		return errorz.New(errorz.INTERNAL, err.Error())
+		return errorz.New(errorz.INTERNAL, err.Error(), err)
 	}
 	if rowsAffected == 0 {
 		span.RecordError(errs.ErrOrderNotFound)

@@ -14,6 +14,14 @@ github.com/erdedan1/protocol v1.0.2 h1:/lbyD/ENPbwt+7/ebGmAT07oxYWzen2xyVGb1YJqW
 github.com/erdedan1/protocol v1.0.2/go.mod h1:uFqwxUTzOW6vCCud5ct4r8JTteiEjhU1mLSlmKCC2x8=
 github.com/erdedan1/shared v1.0.15 h1:UY/3itfzk9b2wWhjVocygEHkcDra6BXr/J30KaLyFYI=
 github.com/erdedan1/shared v1.0.15/go.mod h1:u+Z9vptBsLGfFgAxWfCBWzhJT2Xl6qHFNBV9jUmy7Os=
+github.com/erdedan1/shared v1.0.16 h1:uzn7WCoTiIUYJ58psX2PXt+QnpSEl5DsgiBblA6l+lk=
+github.com/erdedan1/shared v1.0.16/go.mod h1:hWZxKbHIJSUKM9CaK9KC6TwPLckAvCEWdjiuJd3I8Tc=
+github.com/erdedan1/shared v1.0.17 h1:XUeR92vekbHD2XqwaS9Ek6rOQEQWsUOYtAsciGC0kD8=
+github.com/erdedan1/shared v1.0.17/go.mod h1:sP9190w6F2WRXsl3+sBU97g7vyc2zVTD0hLT82Q9bRM=
+github.com/erdedan1/shared v1.0.18 h1:xCxEnFrm4CvWdLud54FfCOOgRrC+WNx9O/EgbUcd36s=
+github.com/erdedan1/shared v1.0.18/go.mod h1:sP9190w6F2WRXsl3+sBU97g7vyc2zVTD0hLT82Q9bRM=
+github.com/erdedan1/shared v1.0.19 h1:zae77Uxnxi77GZP77n6NK+XguNDz1G5x3th1FY8uRyc=
+github.com/erdedan1/shared v1.0.19/go.mod h1:sP9190w6F2WRXsl3+sBU97g7vyc2zVTD0hLT82Q9bRM=
 github.com/fsnotify/fsnotify v1.4.9 h1:hsms1Qyu0jgnwNXIxa+/V/PDsU6CfLf6CNO8H7IWoS4=
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
 github.com/gabriel-vasile/mimetype v1.4.12 h1:e9hWvmLYvtp846tLHam2o++qitpguFiYCKbn0w9jyqw=

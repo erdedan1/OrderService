@@ -17,6 +17,7 @@ import (
 	orderSrv "OrderService/internal/service/order"
 	"OrderService/pkg/cache"
 
+	"github.com/erdedan1/shared/errs"
 	log "github.com/erdedan1/shared/logger"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
@@ -35,11 +36,15 @@ func New(cfg *config.Config, grpcServer *order_service.GRPCServer, log log.Logge
 	}
 }
 
-func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, error) {
-
+func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, *errs.CustomError) {
+	ctx := context.Background()
 	redis := cache.NewRedisClient(cfg)
 
-	orderRepo := orderRepo.NewInMemoryRepo(log, tp)
+	orderRepo, err := orderRepo.NewPostgresRepo(ctx, log, cfg.PostgresDB, tp)
+	if err != nil {
+		return nil, err
+	}
+
 	userRepo := user.NewRepo(log)
 
 	subscriber := orderStatusRepo.NewRedisSubscriber(redis, log, tp)
@@ -61,6 +66,7 @@ func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, 
 		publisher,
 		log,
 		tp,
+		*cfg,
 	)
 
 	grpcServer, err := order_service.NewGRPCServer(cfg.GRPCServer.Address, orderService, log)
@@ -72,7 +78,7 @@ func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, 
 }
 
 func (a *App) Start(ctx context.Context) error {
-	errCh := make(chan error, 1)
+	errCh := make(chan *errs.CustomError, 1)
 	go func() {
 		errCh <- a.grpcServer.Start()
 	}()

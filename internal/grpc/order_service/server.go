@@ -7,11 +7,11 @@ import (
 	"OrderService/internal/usecase"
 
 	pbOrder "github.com/erdedan1/protocol/proto/order_service/gen"
+	"github.com/erdedan1/shared/errs"
 	pbLogger "github.com/erdedan1/shared/interceptors/logger"
 	"github.com/erdedan1/shared/interceptors/recovery"
 	requestid "github.com/erdedan1/shared/interceptors/request_id"
 	log "github.com/erdedan1/shared/logger"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -22,17 +22,12 @@ type GRPCServer struct {
 	lis     net.Listener
 }
 
-func NewGRPCServer(address string, orderService usecase.OrderService, logger log.Logger) (*GRPCServer, error) {
-	zapLogger, err := zap.NewProduction()
-	if err != nil {
-		return nil, err
-	}
-
+func NewGRPCServer(address string, orderService usecase.OrderService, logger log.Logger) (*GRPCServer, *errs.CustomError) {
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			requestid.XRequestIDServerInterceptor(),
-			pbLogger.LoggerServerInterceptor(zapLogger),
-			recovery.RecoveryServerInterceptor(zapLogger),
+			pbLogger.LoggerServerInterceptor(logger),
+			recovery.RecoveryServerInterceptor(logger),
 		),
 	)
 
@@ -46,20 +41,20 @@ func NewGRPCServer(address string, orderService usecase.OrderService, logger log
 	}, nil
 }
 
-func (s *GRPCServer) Start() error {
+func (s *GRPCServer) Start() *errs.CustomError {
 	const method = "GRPCServer.Start"
 
 	lis, err := net.Listen("tcp", s.address)
 	if err != nil {
 		s.log.Error("GRPCServer", method, "failed to listen", err)
-		return err
+		return errs.New(errs.INTERNAL, "failed to listen", err)
 	}
 	s.lis = lis
 
 	err = s.server.Serve(lis)
 	if err != nil {
 		s.log.Error("GRPCServer", method, "grpc serve error", err)
-		return err
+		return errs.New(errs.INTERNAL, "grpc serve error", err)
 	}
 
 	return nil
@@ -74,6 +69,6 @@ func (s *GRPCServer) Stop() {
 	s.log.Info("GRPCServer", method, "grpc server stopped gracefully")
 }
 
-func IsExpectedStop(err error) bool {
+func IsExpectedStop(err *errs.CustomError) bool {
 	return errors.Is(err, grpc.ErrServerStopped)
 }

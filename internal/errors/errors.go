@@ -25,8 +25,6 @@ var (
 //возвращать 408 ошибка а не 500 в каком то методе посмотреть видео
 //ratelimiter
 //cyrcle breaker
-//version proto
-//STATSON_THE_WAY в прото
 //посмотреть утечки в канале stream
 //gracefull shut down grpc service
 //инвалидация кеша

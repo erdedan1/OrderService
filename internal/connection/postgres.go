@@ -8,7 +8,7 @@ import (
 
 	"OrderService/config"
 
-	error "github.com/erdedan1/shared/errs"
+	errs "github.com/erdedan1/shared/errs"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -20,7 +20,7 @@ const (
 	defaultRetryTimeout    = time.Second * 10
 )
 
-func New(ctx context.Context, config config.PostgresDB) (*sqlx.DB, *error.CustomError) {
+func New(ctx context.Context, config config.PostgresDB) (*sqlx.DB, *errs.CustomError) {
 	dbURI := getDBURI(config)
 
 	delayTimer := time.NewTimer(time.Duration(0))
@@ -29,7 +29,7 @@ func New(ctx context.Context, config config.PostgresDB) (*sqlx.DB, *error.Custom
 	for {
 		select {
 		case <-timeoutExceeded:
-			return nil, error.New(2, "timeout connect")
+			return nil, errs.New(2, "timeout connect")
 		case <-delayTimer.C:
 			client, err := sqlx.ConnectContext(ctx, "postgres", dbURI)
 			if err != nil {

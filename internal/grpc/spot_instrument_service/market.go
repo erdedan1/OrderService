@@ -11,7 +11,6 @@ import (
 
 	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen"
 	"github.com/erdedan1/shared/errs"
-	errors "github.com/erdedan1/shared/errs"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -21,10 +20,10 @@ type marketService struct {
 	trace  trace.Tracer
 }
 
-func NewMarketService(cfg *config.Config, tp trace.TracerProvider) (*marketService, error) {
+func NewMarketService(cfg *config.Config, tp trace.TracerProvider) (*marketService, *errs.CustomError) {
 	conn, err := SetupSpotInstrumentClient(cfg)
 	if err != nil {
-		return nil, err
+		return nil, errs.New(errs.UNAVAILABLE, err.Error(), err)
 	}
 
 	return &marketService{
@@ -42,10 +41,10 @@ func (s *marketService) Close() error {
 	return s.conn.Close()
 }
 
-func (s *marketService) ViewMarketsByRoles(ctx context.Context, request *usecase.ViewMarketsByRolesInput) ([]model.Market, *errors.CustomError) {
+func (s *marketService) ViewMarketsByRoles(ctx context.Context, request *usecase.ViewMarketsByRolesInput) ([]model.Market, *errs.CustomError) {
 	resp, err := s.client.ViewMarketsByRoles(ctx, mapper.ViewMarketsRequestToProto(request))
 	if err != nil {
-		return nil, errs.New(errs.UNAVAILABLE, err.Error())
+		return nil, errs.New(errs.UNAVAILABLE, err.Error(), err)
 	}
 
 	marketsResp := make([]model.Market, 0, len(resp.Markets))

@@ -10,4 +10,5 @@ type RedisConfig struct {
 	MinIdleConns int           `env:"REDIS_MIN_IDLE_CONNS" validate:"gte=0"`
 	PoolSize     int           `env:"REDIS_POOL_SIZE" validate:"gte=0"`
 	PoolTimeout  time.Duration `env:"REDIS_POOL_TIMEOUT" validate:"gte=0"`
+	TTL          time.Duration `env:"REDIS_TTL" validate:"gte=0"`
 }

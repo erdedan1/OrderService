@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"OrderService/config"
 	"OrderService/internal/errors"
 	"OrderService/internal/model"
 	"OrderService/internal/usecase"
@@ -33,7 +34,7 @@ func preparingTests(t *testing.T) (
 	marketSrv := mocks.NewMarketService(t)
 	subscriber := mocks.NewOrderStatusSubscriber(t)
 	publisher := mocks.NewOrderStatusPublisher(t)
-	//тут тоже какую нить заглушку надо бы наверное
+
 	logger, _ := log.NewLogger("debug")
 	defer logger.Sync()
 
@@ -46,6 +47,7 @@ func preparingTests(t *testing.T) (
 		publisher,
 		logger,
 		noop.NewTracerProvider(),
+		config.Config{},
 	)
 	return service, orderRepo, userRepo, cache, marketSrv, subscriber, publisher
 }

@@ -1,6 +1,8 @@
 package mapper
 
 import (
+	"time"
+
 	errs "OrderService/internal/errors"
 	"OrderService/internal/usecase"
 
@@ -8,6 +10,7 @@ import (
 	errors "github.com/erdedan1/shared/errs"
 	m "github.com/erdedan1/shared/mapper"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func CreateOrderRequestFromProto(request *pb.CreateOrderRequest) (*usecase.CreateOrderInput, *errors.CustomError) {
@@ -30,7 +33,7 @@ func CreateOrderRequestFromProto(request *pb.CreateOrderRequest) (*usecase.Creat
 		UserID:    userId,
 		OrderType: request.OrderType,
 		Price:     request.Price,
-		UserRoles: m.ProtoUserRolesToString(request.UserRoles),
+		UserRoles: m.UserRolesFromProto(request.UserRoles),
 		Quantity:  request.Quantity,
 	}, nil
 }
@@ -38,7 +41,7 @@ func CreateOrderRequestFromProto(request *pb.CreateOrderRequest) (*usecase.Creat
 func CreateOrderResponseToProto(resp *usecase.CreateOrderOutput) *pb.CreateOrderResponse {
 	return &pb.CreateOrderResponse{
 		Id:     resp.ID.String(),
-		Status: m.StringOrderStatusToProto(resp.Status),
+		Status: m.OrderStatusToProto(resp.Status),
 	}
 }
 
@@ -61,7 +64,23 @@ func GetOrderStatusRequestFromProto(request *pb.GetOrderStatusRequest) (*usecase
 
 func GetOrderStatusResponseToProto(resp *usecase.GetOrderStatusOutput) *pb.GetOrderStatusResponse {
 	return &pb.GetOrderStatusResponse{
-		Status:    m.StringOrderStatusToProto(resp.Status),
-		UpdatedAt: m.ToTimestampProto(resp.UpdatedAt),
+		Status:    m.OrderStatusToProto(resp.Status),
+		UpdatedAt: timestamppb.New(*resp.UpdatedAt),
 	}
+}
+
+func ToDtoTime(value *timestamppb.Timestamp) *time.Time {
+	if value == nil || !value.IsValid() {
+		return nil
+	}
+	t := value.AsTime()
+	return &t
+}
+
+func ToTimestampProto(value *time.Time) *timestamppb.Timestamp {
+	if value == nil || value.IsZero() {
+		return nil
+	}
+
+	return timestamppb.New(*value)
 }
