@@ -4,7 +4,6 @@ import (
 	"OrderService/internal/dto"
 	errs "OrderService/internal/errors"
 	"context"
-	"time"
 
 	errors "github.com/erdedan1/shared/errs"
 	"go.opentelemetry.io/otel/attribute"
@@ -63,6 +62,6 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 
 	return &dto.GetOrderStatusResponse{
 		Status:    string(order.Status),
-		UpdatedAt: new(time.Now()),
+		UpdatedAt: &order.UpdatedAt,
 	}, nil
 }
