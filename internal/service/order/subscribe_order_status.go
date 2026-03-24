@@ -2,7 +2,6 @@ package order
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"OrderService/config"
@@ -131,25 +130,18 @@ func (s *Service) publishOrderLifecycle(ctx context.Context, orderID uuid.UUID, 
 	status := initialStatus
 	for {
 		nextStatus, hasNext := model.NextOrderStatus(status)
-		fmt.Println(nextStatus, "1")
 		if !hasNext {
-			fmt.Println(nextStatus, "2")
 			return
 		}
 
 		select {
 		case <-ctx.Done():
-			fmt.Println(nextStatus, "3")
 			return
 		case <-time.After(config.Global.Infrastructure.OrderLifecycleConfig.StepInterval):
-			fmt.Println(nextStatus, "4")
 		}
-		fmt.Println(nextStatus, "5")
 		if updateErr := s.UpdateOrderStatus(ctx, orderID, nextStatus); updateErr != nil {
-			fmt.Println(nextStatus, "6")
 			return
 		}
-		fmt.Println(nextStatus, "7")
 		status = nextStatus
 	}
 }
