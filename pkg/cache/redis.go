@@ -21,7 +21,7 @@ func NewRedisClient(config *config.Config) RedisClient {
 		Addr:         config.Infrastructure.RedisConfig.Host + ":" + config.Infrastructure.RedisConfig.Port,
 		MinIdleConns: config.Infrastructure.RedisConfig.MinIdleConns,
 		PoolSize:     config.Infrastructure.RedisConfig.PoolSize,
-		PoolTimeout:  time.Duration(config.Infrastructure.RedisConfig.PoolSize) * time.Second,
+		PoolTimeout:  time.Duration(config.Infrastructure.RedisConfig.PoolTimeout) * time.Second,
 		Password:     "",
 		DB:           0,
 	})

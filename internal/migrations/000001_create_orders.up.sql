@@ -10,4 +10,4 @@ CREATE TABLE IF NOT EXISTS orders
     created_at  timestamptz      DEFAULT NOW(),
     updated_at   timestamptz      DEFAULT NULL
     deleted_at  timestamptz      DEFAULT NULL
-)
+);
