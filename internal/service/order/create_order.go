@@ -59,7 +59,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		}
 	}
 
-	go s.publishOrderLifecycle(order.ID, order.Status)
+	go s.publishOrderLifecycle(ctx, order.ID, order.Status)
 
 	span.SetStatus(codes.Ok, "order success created")
 	s.log.Debug(layer, method, "order success created")

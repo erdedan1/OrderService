@@ -62,6 +62,6 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 
 	return &dto.GetOrderStatusResponse{
 		Status:    string(order.Status),
-		UpdatedAt: &order.UpdatedAt,
+		UpdatedAt: order.UpdatedAt,
 	}, nil
 }

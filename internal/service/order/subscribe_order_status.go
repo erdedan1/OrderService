@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"OrderService/config"
@@ -59,7 +60,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	if order.Status == model.StatusClosed {
 		defer close(ch)
 
-		ch <- &dto.GetOrderStatusResponse{Status: order.Status.ToString(), UpdatedAt: &order.UpdatedAt}
+		ch <- &dto.GetOrderStatusResponse{Status: order.Status.ToString(), UpdatedAt: order.UpdatedAt}
 
 		span.SetStatus(codes.Ok, "order already completed and closed")
 
@@ -87,10 +88,10 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		return nil, err
 	}
 
-	go func(initialStatus model.OrderStatus, initialUpdatedAt time.Time) {
+	go func(initialStatus model.OrderStatus, initialUpdatedAt *time.Time) {
 		defer close(ch)
 
-		ch <- &dto.GetOrderStatusResponse{Status: initialStatus.ToString(), UpdatedAt: &initialUpdatedAt}
+		ch <- &dto.GetOrderStatusResponse{Status: initialStatus.ToString(), UpdatedAt: initialUpdatedAt}
 		lastStatus := initialStatus
 
 		for {
@@ -122,31 +123,33 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	return ch, nil
 }
 
-func (s *Service) publishOrderLifecycle(orderID uuid.UUID, initialStatus model.OrderStatus) {
+func (s *Service) publishOrderLifecycle(ctx context.Context, orderID uuid.UUID, initialStatus model.OrderStatus) {
 	const method = "publishOrderLifecycle"
-
-	ctx, cancel := context.WithTimeout(context.Background(), config.Global.Infrastructure.OrderLifecycleConfig.StepInterval)
-	defer cancel()
 
 	s.log.Debug(layer, method, "start new sobitie")
 
 	status := initialStatus
 	for {
 		nextStatus, hasNext := model.NextOrderStatus(status)
+		fmt.Println(nextStatus, "1")
 		if !hasNext {
+			fmt.Println(nextStatus, "2")
 			return
 		}
 
 		select {
 		case <-ctx.Done():
+			fmt.Println(nextStatus, "3")
 			return
-		case <-time.After(5 * time.Second):
+		case <-time.After(config.Global.Infrastructure.OrderLifecycleConfig.StepInterval):
+			fmt.Println(nextStatus, "4")
 		}
-
+		fmt.Println(nextStatus, "5")
 		if updateErr := s.UpdateOrderStatus(ctx, orderID, nextStatus); updateErr != nil {
+			fmt.Println(nextStatus, "6")
 			return
 		}
-
+		fmt.Println(nextStatus, "7")
 		status = nextStatus
 	}
 }

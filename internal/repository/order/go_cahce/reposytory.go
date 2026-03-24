@@ -116,7 +116,7 @@ func (r *Repo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, status model
 			"order_status", o.Status,
 		)
 		o.Status = status
-		o.UpdatedAt = time.Now()
+		o.UpdatedAt = new(time.Now())
 		return nil
 	}
 

@@ -8,16 +8,16 @@ import (
 )
 
 type Order struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	MarketID  uuid.UUID
-	Quantity  int64
-	Type      string
-	Status    OrderStatus
-	Price     decimal.Decimal
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt time.Time
+	ID        uuid.UUID       `db:"id"`
+	UserID    uuid.UUID       `db:"user_id"`
+	MarketID  uuid.UUID       `db:"market_id"`
+	Quantity  int64           `db:"quantity"`
+	Type      string          `db:"order_type"`
+	Status    OrderStatus     `db:"order_status"`
+	Price     decimal.Decimal `db:"price"`
+	CreatedAt *time.Time      `db:"created_at"`
+	UpdatedAt *time.Time      `db:"updated_at"`
+	DeletedAt *time.Time      `db:"deleted_at"`
 }
 
 type OrderStatus string
@@ -118,7 +118,6 @@ func NewOrder(
 	orderType string,
 ) *Order {
 	currentPrice := decimal.NewFromInt(price)
-
 	return &Order{
 		UserID:    userID,
 		MarketID:  marketID,
@@ -126,6 +125,6 @@ func NewOrder(
 		Type:      orderType,
 		Status:    StatusCreated,
 		Price:     currentPrice,
-		CreatedAt: time.Now(),
+		CreatedAt: new(time.Now()),
 	}
 }

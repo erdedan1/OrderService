@@ -312,7 +312,7 @@ func TestSubscribeOrderStatus_OrderClosed(t *testing.T) {
 		ID:        orderID,
 		UserID:    userID,
 		Status:    model.StatusClosed,
-		UpdatedAt: now,
+		UpdatedAt: &now,
 	}
 
 	orderRepo.On("GetOrder", mock.Anything, orderID).
