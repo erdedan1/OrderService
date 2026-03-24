@@ -41,21 +41,6 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		return nil, err
 	}
 
-	if order.UserID != request.UserID {
-		defer close(ch)
-		span.RecordError(errs.ErrInvalidUserID)
-		span.SetStatus(codes.Error, errs.ErrInvalidUserID.Message)
-
-		s.log.Error(
-			layer, method,
-			errs.ErrInvalidUserID.Message,
-			errs.ErrInvalidUserID,
-			"order_id", request.OrderID,
-			"user_id", request.UserID,
-		)
-		return ch, errs.ErrInvalidUserID
-	}
-
 	if order.Status == model.StatusClosed {
 		defer close(ch)
 

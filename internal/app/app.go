@@ -88,16 +88,16 @@ func (a *App) Start(ctx context.Context) *errs.CustomError {
 	select {
 	case err := <-errCh:
 		if err != nil {
-			return errs.New(errs.INTERNAL, "grpc server start failed: %w", err)
+			return errs.New(err.Code, "grpc server start failed: %w", err)
 		}
 		return nil
 	case <-ctx.Done():
 		a.grpcServer.Stop()
-		return errs.New(errs.INTERNAL, ctx.Err().Error(), ctx.Err())
+		return errs.New(errs.CANCELLED, ctx.Err().Error(), ctx.Err())
 	case <-quit:
 		a.grpcServer.Stop()
 		if err := <-errCh; err != nil && !order_service.IsExpectedStop(err) {
-			return errs.New(errs.INTERNAL, "grpc server stop failed: %w", err)
+			return errs.New(err.Code, "grpc server stop failed: %w", err)
 		}
 		return nil
 	}
