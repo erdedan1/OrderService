@@ -65,6 +65,8 @@ func TestCreateOrder_Success(t *testing.T) {
 		Return([]dto.ViewMarketsResponse{{ID: uuid.New()}}, nil)
 	cache.On("Set", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil)
+	cache.On("Del", mock.Anything, mock.Anything).
+		Return(nil)
 	publisher.On("PublishOrderStatus", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil)
 	orderRepo.On("CreateOrder", mock.Anything, mock.Anything).

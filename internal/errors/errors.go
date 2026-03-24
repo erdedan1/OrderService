@@ -26,5 +26,5 @@ var (
 //ratelimiter
 //cyrcle breaker
 //посмотреть утечки в канале stream
-//gracefull shut down grpc service
+//gracefull shutdown grpc service
 //инвалидация кеша

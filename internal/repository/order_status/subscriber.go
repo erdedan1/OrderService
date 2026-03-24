@@ -76,7 +76,11 @@ func (s *RedisSubscriber) SubscribeOrderStatus(ctx context.Context, orderID uuid
 					continue
 				}
 
-				out <- status
+				select {
+				case <-ctx.Done():
+					return
+				case out <- status:
+				}
 			}
 		}
 	}()

@@ -75,7 +75,11 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	go func(initialStatus model.OrderStatus, initialUpdatedAt *time.Time) {
 		defer close(ch)
 
-		ch <- &dto.GetOrderStatusResponse{Status: initialStatus.ToString(), UpdatedAt: initialUpdatedAt}
+		select {
+		case <-ctx.Done():
+			return
+		case ch <- &dto.GetOrderStatusResponse{Status: initialStatus.ToString(), UpdatedAt: initialUpdatedAt}:
+		}
 		lastStatus := initialStatus
 
 		for {
@@ -93,7 +97,12 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 				lastStatus = status
 
 				now := time.Now()
-				ch <- &dto.GetOrderStatusResponse{Status: status.ToString(), UpdatedAt: &now}
+
+				select {
+				case <-ctx.Done():
+					return
+				case ch <- &dto.GetOrderStatusResponse{Status: status.ToString(), UpdatedAt: &now}:
+				}
 
 				if status == model.StatusClosed {
 					return
