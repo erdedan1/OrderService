@@ -14,8 +14,13 @@ type GetOrderStatusResponse struct {
 }
 
 func (g *GetOrderStatusResponse) ToProto() *pb.GetOrderStatusResponse {
-	return &pb.GetOrderStatusResponse{
-		Status:    m.OrderStatusToProto(g.Status),
-		UpdatedAt: timestamppb.New(*g.UpdatedAt),
+	response := &pb.GetOrderStatusResponse{
+		Status: m.OrderStatusToProto(g.Status),
 	}
+
+	if g.UpdatedAt != nil {
+		response.UpdatedAt = timestamppb.New(*g.UpdatedAt)
+	}
+
+	return response
 }

@@ -10,6 +10,7 @@ import (
 
 	errs "github.com/erdedan1/shared/errs"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -29,7 +30,7 @@ func New(ctx context.Context, config config.PostgresDB) (*sqlx.DB, *errs.CustomE
 	for {
 		select {
 		case <-timeoutExceeded:
-			return nil, errs.New(2, "timeout connect")
+			return nil, errs.New(errs.PERMISSION_DENIED, "timeout connect")
 		case <-delayTimer.C:
 			client, err := sqlx.ConnectContext(ctx, "postgres", dbURI)
 			if err != nil {

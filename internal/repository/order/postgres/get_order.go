@@ -24,7 +24,7 @@ func (r *Repository) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, 
 		attribute.String("order.id", id.String()),
 	)
 
-	query := `SELECT id, user_id, market_id, quantity, type, status, price, created_at, updated_at, deleted_at FROM orders WHERE id = $1`
+	query := `SELECT id, user_id, market_id, quantity, order_type, order_status, price, created_at, updated_at, deleted_at FROM orders WHERE id = $1`
 
 	var notification model.Order
 
@@ -52,7 +52,7 @@ func (r *Repository) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, 
 			err.Error(), err,
 			"order_id", id,
 		)
-		return nil, errorz.New(errorz.INTERNAL, err.Error(), err)
+		return nil, errorz.New(errorz.INTERNAL, "failed to get order", err)
 	}
 
 	span.SetStatus(codes.Ok, "get order success")

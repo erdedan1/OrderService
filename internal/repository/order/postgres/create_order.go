@@ -16,7 +16,7 @@ func (r *Repository) CreateOrder(ctx context.Context, order *model.Order) (*mode
 	defer span.End()
 
 	query := `
-		INSERT INTO orders (user_id, market_id, quantity, type, status, price)
+		INSERT INTO orders (user_id, market_id, quantity, order_type, order_status, price)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at
 	`
@@ -33,7 +33,7 @@ func (r *Repository) CreateOrder(ctx context.Context, order *model.Order) (*mode
 			err.Error(), err,
 			"order_id", order.ID,
 		)
-		return nil, errorz.New(errorz.INTERNAL, err.Error(), err)
+		return nil, errorz.New(errorz.INTERNAL, "failed to create order", err)
 	}
 
 	span.SetStatus(codes.Ok, "order success created")
