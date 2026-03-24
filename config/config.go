@@ -26,7 +26,7 @@ type GRPCApiConfig struct {
 }
 
 func New() error {
-	if err := env.Parse(Global); err != nil {
+	if err := env.Parse(&Global); err != nil {
 		return err
 	}
 
