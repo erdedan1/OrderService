@@ -31,8 +31,8 @@ func (r *Repository) UpdateOrderStatus(ctx context.Context, id uuid.UUID, status
 
 	res, err := r.db.ExecContext(ctx, query, status, time.Now(), id)
 	if err != nil {
-		span.RecordError(errs.ErrOrderNotFound)
-		span.SetStatus(codes.Error, errs.ErrOrderNotFound.Message)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 
 		r.log.Error(
 			layerPostgres,
