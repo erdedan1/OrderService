@@ -1,7 +1,7 @@
 MIGRATE_URL=postgres://postgres:postgres@postgres:5432/order_db?sslmode=disable
 
 migrate-up:
-	migrate -path migrations -database "$(MIGRATE_URL)" up
+	goose -dir internal/migrations postgres "$(MIGRATE_URL)" up
 
 migrate-down:
-	migrate -path migrations -database "$(MIGRATE_URL)" down 1
+	goose -dir internal/migrations postgres "$(MIGRATE_URL)" down
