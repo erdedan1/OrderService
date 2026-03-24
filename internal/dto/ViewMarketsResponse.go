@@ -20,14 +20,25 @@ type ViewMarketsResponse struct {
 }
 
 func (v *ViewMarketsResponse) ToProto() *pb.Market {
-	return &pb.Market{
-		Id:        v.ID.String(),
-		Name:      v.Name,
-		Enabled:   v.Enabled,
-		CreatedAt: timestamppb.New(*v.CreatedAt),
-		UpdatedAt: timestamppb.New(*v.UpdatedAt),
-		DeletedAt: timestamppb.New(*v.DeletedAt),
+	market := &pb.Market{
+		Id:      v.ID.String(),
+		Name:    v.Name,
+		Enabled: v.Enabled,
 	}
+
+	if v.CreatedAt != nil {
+		market.CreatedAt = timestamppb.New(*v.CreatedAt)
+	}
+
+	if v.UpdatedAt != nil {
+		market.UpdatedAt = timestamppb.New(*v.UpdatedAt)
+	}
+
+	if v.DeletedAt != nil {
+		market.DeletedAt = timestamppb.New(*v.DeletedAt)
+	}
+
+	return market
 }
 
 func (v *ViewMarketsResponse) FromProto(market *pb.Market) (*ViewMarketsResponse, *errors.CustomError) {

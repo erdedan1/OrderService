@@ -12,26 +12,26 @@ import (
 func main() {
 	ctx := context.Background()
 
-	cfg, err := config.New()
+	err := config.New()
 	if err != nil {
 		panic(err)
 	}
 
-	logger, err := log.NewLogger(cfg.Infrastructure.Observability.Loglvl)
+	logger, err := log.NewLogger(config.Global.Infrastructure.Observability.Loglvl)
 	if err != nil {
 		panic(err)
 	}
 	defer logger.Sync()
 
-	tp, err := telemetry.New(ctx, cfg.Infrastructure.Observability.Telemetry)
+	tp, err := telemetry.New(ctx, config.Global.Infrastructure.Observability.Telemetry)
 	if err != nil {
 		panic(err)
 	}
 	defer tp.Shutdown(ctx)
 
-	app, err := app.Build(cfg, logger, tp)
-	if err != nil {
-		panic(err)
+	app, errC := app.Build(&config.Global, logger, tp)
+	if errC != nil {
+		panic(errC)
 	}
 
 	if err := app.Start(ctx); err != nil {

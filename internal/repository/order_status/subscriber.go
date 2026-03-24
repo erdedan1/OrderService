@@ -71,7 +71,7 @@ func (s *RedisSubscriber) SubscribeOrderStatus(ctx context.Context, orderID uuid
 				}
 
 				status := model.OrderStatus(msg.Payload)
-				if status == model.StatusUnspecified {
+				if !status.IsValid() {
 					s.log.Error(layer, method, "invalid order status payload", errs.ErrInvalidArgument, "order_id", orderID, "payload", msg.Payload)
 					continue
 				}

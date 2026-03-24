@@ -1,6 +1,7 @@
 package order
 
 import (
+	"OrderService/config"
 	"OrderService/internal/dto"
 	errs "OrderService/internal/errors"
 	"OrderService/internal/model"
@@ -55,6 +56,8 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 	if publishErr := s.orderStatusPublisher.PublishOrderStatus(ctx, order.ID, order.Status); publishErr != nil {
 		s.log.Error(layer, method, publishErr.Error(), publishErr, "order_id", order.ID, "status", order.Status)
 	}
+
+	go s.publishOrderLifecycle(order.ID, order.Status)
 
 	span.SetStatus(codes.Ok, "order success created")
 	s.log.Debug(layer, method, "order success created")
@@ -128,7 +131,7 @@ func (s *Service) ensureMarketsAccess(ctx context.Context, userID uuid.UUID, rol
 		return errs.ErrMarketNotFound
 	}
 
-	err = s.marketCache.Set(ctx, cacheKey, markets, s.cfg.Infrastructure.RedisConfig.TTL)
+	err = s.marketCache.Set(ctx, cacheKey, markets, config.Global.Infrastructure.RedisConfig.TTL)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

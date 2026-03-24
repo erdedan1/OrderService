@@ -66,6 +66,25 @@ func (o OrderStatus) ToString() string {
 	}
 }
 
+func (o OrderStatus) IsValid() bool {
+	switch o {
+	case StatusCreated,
+		StatusPending,
+		StatusWaitSeller,
+		StatusPaid,
+		StatusOnHold,
+		StatusProcessing,
+		StatusPacked,
+		StatusOutOfDelivery,
+		StatusOnTheWay,
+		StatusDelivered,
+		StatusClosed:
+		return true
+	default:
+		return false
+	}
+}
+
 func NextOrderStatus(current OrderStatus) (OrderStatus, bool) {
 	switch current {
 	case StatusCreated:

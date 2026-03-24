@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -66,7 +65,6 @@ func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, 
 		publisher,
 		log,
 		tp,
-		*cfg,
 	)
 
 	grpcServer, err := order_service.NewGRPCServer(cfg.GRPCServer.Address, orderService, log)
@@ -77,7 +75,7 @@ func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, 
 	return New(cfg, grpcServer, log), nil
 }
 
-func (a *App) Start(ctx context.Context) error {
+func (a *App) Start(ctx context.Context) *errs.CustomError {
 	errCh := make(chan *errs.CustomError, 1)
 	go func() {
 		errCh <- a.grpcServer.Start()
@@ -90,16 +88,16 @@ func (a *App) Start(ctx context.Context) error {
 	select {
 	case err := <-errCh:
 		if err != nil {
-			return fmt.Errorf("grpc server start failed: %w", err)
+			return errs.New(errs.INTERNAL, "grpc server start failed: %w", err)
 		}
 		return nil
 	case <-ctx.Done():
 		a.grpcServer.Stop()
-		return ctx.Err()
+		return errs.New(errs.INTERNAL, ctx.Err().Error(), ctx.Err())
 	case <-quit:
 		a.grpcServer.Stop()
 		if err := <-errCh; err != nil && !order_service.IsExpectedStop(err) {
-			return fmt.Errorf("grpc server stop failed: %w", err)
+			return errs.New(errs.INTERNAL, "grpc server stop failed: %w", err)
 		}
 		return nil
 	}

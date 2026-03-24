@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"OrderService/config"
 	"OrderService/internal/dto"
 	"OrderService/internal/errors"
 	"OrderService/internal/model"
@@ -47,7 +46,6 @@ func preparingTests(t *testing.T) (
 		publisher,
 		logger,
 		noop.NewTracerProvider(),
-		config.Config{},
 	)
 	return service, orderRepo, userRepo, cache, marketSrv, subscriber, publisher
 }
@@ -401,6 +399,7 @@ func TestSubscribeOrderStatus_Success(t *testing.T) {
 	second := <-ch
 
 	assert.Equal(t, model.StatusClosed.ToString(), second.Status)
+	orderRepo.AssertNotCalled(t, "UpdateOrderStatus", mock.Anything, mock.Anything, mock.Anything)
 
 	orderRepo.AssertExpectations(t)
 	subscriber.AssertExpectations(t)

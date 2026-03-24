@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"OrderService/config"
 	"OrderService/internal/dto"
 	errs "OrderService/internal/errors"
 	"OrderService/internal/model"
@@ -86,8 +87,6 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		return nil, err
 	}
 
-	go s.publishOrderLifecycle(context.WithoutCancel(ctx), order.ID, order.Status)
-
 	go func(initialStatus model.OrderStatus, initialUpdatedAt time.Time) {
 		defer close(ch)
 
@@ -123,8 +122,11 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	return ch, nil
 }
 
-func (s *Service) publishOrderLifecycle(ctx context.Context, orderID uuid.UUID, initialStatus model.OrderStatus) {
+func (s *Service) publishOrderLifecycle(orderID uuid.UUID, initialStatus model.OrderStatus) {
 	const method = "publishOrderLifecycle"
+
+	ctx, cancel := context.WithTimeout(context.Background(), config.Global.Infrastructure.RedisConfig.TTL)
+	defer cancel()
 
 	s.log.Debug(layer, method, "start new sobitie")
 
