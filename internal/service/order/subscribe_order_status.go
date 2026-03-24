@@ -28,7 +28,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 
 	ch := make(chan *dto.GetOrderStatusResponse, 1)
 
-	order, err := s.orderRepo.GetOrder(ctx, request.OrderID)
+	order, err := s.orderRepo.GetOrder(ctx, request.OrderID, request.UserID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

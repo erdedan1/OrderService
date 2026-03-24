@@ -2,7 +2,6 @@ package order
 
 import (
 	"OrderService/internal/dto"
-	errs "OrderService/internal/errors"
 	"context"
 
 	errors "github.com/erdedan1/shared/errs"
@@ -21,7 +20,7 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 		attribute.String("order.id", request.OrderID.String()),
 	)
 
-	order, err := s.orderRepo.GetOrder(ctx, request.OrderID)
+	order, err := s.orderRepo.GetOrder(ctx, request.OrderID, request.UserID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -33,21 +32,6 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 			"order_id", request.OrderID,
 		)
 		return nil, err
-	}
-
-	if order.UserID != request.UserID {
-		span.RecordError(errs.ErrInvalidUserID)
-		span.SetStatus(codes.Error, errs.ErrInvalidUserID.Message)
-
-		s.log.Error(
-			layer,
-			method,
-			errs.ErrInvalidUserID.Message,
-			errs.ErrInvalidUserID,
-			"user_id", request.UserID,
-			"order_id", request.OrderID,
-		)
-		return nil, errs.ErrInvalidUserID
 	}
 
 	span.SetStatus(codes.Ok, "get order success")

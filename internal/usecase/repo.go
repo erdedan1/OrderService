@@ -14,7 +14,7 @@ import (
 //go:generate mockery --name=OrderRepo --output=../../mocks --outpkg=mocks
 type OrderRepo interface {
 	CreateOrder(ctx context.Context, order *model.Order) (*model.Order, *errors.CustomError)
-	GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, *errors.CustomError)
+	GetOrder(ctx context.Context, orderID, userID uuid.UUID) (*model.Order, *errors.CustomError)
 	UpdateOrderStatus(ctx context.Context, id uuid.UUID, order model.OrderStatus) *errors.CustomError
 }
 

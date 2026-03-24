@@ -14,21 +14,22 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-func (r *Repository) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, *errorz.CustomError) {
+func (r *Repository) GetOrder(ctx context.Context, orderID, userID uuid.UUID) (*model.Order, *errorz.CustomError) {
 	const method = "GetOrder"
 
 	ctx, span := r.tracer.Start(ctx, "OrderRepository.GetOrder")
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("order.id", id.String()),
+		attribute.String("order.id", orderID.String()),
+		attribute.String("user.id", userID.String()),
 	)
 
-	query := `SELECT id, user_id, market_id, quantity, order_type, order_status, price, created_at, updated_at, deleted_at FROM orders WHERE id = $1`
+	query := `SELECT id, user_id, market_id, quantity, order_type, order_status, price, created_at, updated_at, deleted_at FROM orders WHERE id = $1 AND user_id = $2`
 
 	var notification model.Order
 
-	err := r.db.GetContext(ctx, &notification, query, id)
+	err := r.db.GetContext(ctx, &notification, query, orderID, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			span.RecordError(errs.ErrOrderNotFound)
@@ -38,7 +39,8 @@ func (r *Repository) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, 
 				layerPostgres,
 				method,
 				err.Error(), err,
-				"order_id", id,
+				"order_id", orderID,
+				"user_id", userID,
 			)
 			return nil, errs.ErrOrderNotFound
 		}
@@ -50,7 +52,8 @@ func (r *Repository) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, 
 			layerPostgres,
 			method,
 			err.Error(), err,
-			"order_id", id,
+			"order_id", orderID,
+			"user_id", userID,
 		)
 		return nil, errorz.New(errorz.INTERNAL, "failed to get order", err)
 	}

@@ -50,9 +50,9 @@ func (_m *OrderRepo) CreateOrder(ctx context.Context, order *model.Order) (*mode
 	return r0, r1
 }
 
-// GetOrder provides a mock function with given fields: ctx, id
-func (_m *OrderRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, *errs.CustomError) {
-	ret := _m.Called(ctx, id)
+// GetOrder provides a mock function with given fields: ctx, orderID, userID
+func (_m *OrderRepo) GetOrder(ctx context.Context, orderID uuid.UUID, userID uuid.UUID) (*model.Order, *errs.CustomError) {
+	ret := _m.Called(ctx, orderID, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetOrder")
@@ -60,19 +60,19 @@ func (_m *OrderRepo) GetOrder(ctx context.Context, id uuid.UUID) (*model.Order, 
 
 	var r0 *model.Order
 	var r1 *errs.CustomError
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*model.Order, *errs.CustomError)); ok {
-		return rf(ctx, id)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (*model.Order, *errs.CustomError)); ok {
+		return rf(ctx, orderID, userID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *model.Order); ok {
-		r0 = rf(ctx, id)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) *model.Order); ok {
+		r0 = rf(ctx, orderID, userID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.Order)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) *errs.CustomError); ok {
-		r1 = rf(ctx, id)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) *errs.CustomError); ok {
+		r1 = rf(ctx, orderID, userID)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*errs.CustomError)
