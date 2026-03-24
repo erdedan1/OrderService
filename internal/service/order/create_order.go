@@ -53,8 +53,10 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		return nil, err
 	}
 
-	if publishErr := s.orderStatusPublisher.PublishOrderStatus(ctx, order.ID, order.Status); publishErr != nil {
-		s.log.Error(layer, method, publishErr.Error(), publishErr, "order_id", order.ID, "status", order.Status)
+	if s.orderStatusPublisher != nil {
+		if publishErr := s.orderStatusPublisher.PublishOrderStatus(ctx, order.ID, order.Status); publishErr != nil {
+			s.log.Error(layer, method, publishErr.Error(), publishErr, "order_id", order.ID, "status", order.Status)
+		}
 	}
 
 	go s.publishOrderLifecycle(order.ID, order.Status)

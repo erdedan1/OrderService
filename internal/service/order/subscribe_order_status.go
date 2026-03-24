@@ -125,7 +125,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 func (s *Service) publishOrderLifecycle(orderID uuid.UUID, initialStatus model.OrderStatus) {
 	const method = "publishOrderLifecycle"
 
-	ctx, cancel := context.WithTimeout(context.Background(), config.Global.Infrastructure.RedisConfig.TTL)
+	ctx, cancel := context.WithTimeout(context.Background(), config.Global.Infrastructure.OrderLifecycleConfig.StepInterval)
 	defer cancel()
 
 	s.log.Debug(layer, method, "start new sobitie")
