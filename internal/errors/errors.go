@@ -21,10 +21,3 @@ var (
 	ErrFailedDeserializeRedis = errs.New(errs.INTERNAL, "failed to deserialize markets redis")
 	ErrDeleteRedis            = errs.New(errs.UNAVAILABLE, "failed to delete redis key")
 )
-
-//возвращать 408 ошибка а не 500 в каком то методе посмотреть видео
-//ratelimiter
-//cyrcle breaker
-//посмотреть утечки в канале stream
-//gracefull shutdown grpc service
-//инвалидация кеша

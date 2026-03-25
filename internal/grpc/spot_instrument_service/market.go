@@ -40,6 +40,9 @@ func (s *marketService) Close() error {
 }
 
 func (s *marketService) ViewMarketsByRoles(ctx context.Context, request *dto.ViewMarketsRequest) ([]dto.ViewMarketsResponse, *errs.CustomError) {
+	ctx, span := s.trace.Start(ctx, "OrderService.ViewMarketsByRoles")
+	defer span.End()
+
 	resp, err := s.client.ViewMarketsByRoles(ctx, request.ToProto())
 	if err != nil {
 		return nil, errs.New(errs.UNAVAILABLE, err.Error(), err)

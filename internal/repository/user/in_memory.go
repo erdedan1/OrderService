@@ -11,20 +11,24 @@ import (
 	errors "github.com/erdedan1/shared/errs"
 	log "github.com/erdedan1/shared/logger"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // тут трейсы как будто бы тоже закинуть нужно но это нигде не используется так то
 type Repo struct {
-	Users map[uuid.UUID]model.User
-	mu    *sync.RWMutex
-	l     log.Logger
+	Users  map[uuid.UUID]model.User
+	mu     *sync.RWMutex
+	log    log.Logger
+	tracer trace.Tracer
 }
 
-func NewRepo(logger log.Logger) *Repo {
+func NewRepo(logger log.Logger, tp trace.TracerProvider) *Repo {
 	repo := &Repo{
-		Users: make(map[uuid.UUID]model.User),
-		mu:    &sync.RWMutex{},
-		l:     logger,
+		Users:  make(map[uuid.UUID]model.User),
+		mu:     &sync.RWMutex{},
+		log:    logger,
+		tracer: tp.Tracer("order-service/UserRepo"),
 	}
 	users := []model.User{
 		{
@@ -60,18 +64,22 @@ func (r *Repo) CreateUser(ctx context.Context, user model.User) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.l.Debug(layer, "CreateUser", "user success created")
+	r.log.Debug(layer, "CreateUser", "user success created")
 
 	r.Users[user.ID] = user
 }
 
 func (r *Repo) GetUserById(ctx context.Context, id uuid.UUID) (*model.User, *errors.CustomError) {
 	const method = "GetUserById"
+
+	ctx, span := r.tracer.Start(ctx, "UserRepo.GetUserById")
+	defer span.End()
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	if u, found := r.Users[id]; found {
-		r.l.Debug(
+		r.log.Debug(
 			layer,
 			method,
 			"found user",
@@ -80,7 +88,10 @@ func (r *Repo) GetUserById(ctx context.Context, id uuid.UUID) (*model.User, *err
 		return &u, nil
 	}
 
-	r.l.Error(layer, method, "user not found", errs.ErrUserNotFound)
+	span.RecordError(errs.ErrUserNotFound)
+	span.SetStatus(codes.Error, errs.ErrUserNotFound.Error())
+
+	r.log.Error(layer, method, "user not found", errs.ErrUserNotFound)
 
 	return nil, errs.ErrUserNotFound
 }

@@ -59,9 +59,6 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		}
 	}
 
-	lifecycleCtx := context.WithoutCancel(ctx)
-	go s.publishOrderLifecycle(lifecycleCtx, order.ID, order.Status)
-
 	span.SetStatus(codes.Ok, "order success created")
 	s.log.Debug(layer, method, "order success created")
 
@@ -86,7 +83,7 @@ func (s *Service) getAuthorizedUser(ctx context.Context, request *dto.CreateOrde
 		return nil, err
 	}
 
-	if !user.CheckRoles(request.UserRoles) {
+	if !user.CheckRoles(request.UserRoles) { //а зачем мы передаем userRole если они есть в user?
 		span.RecordError(errs.ErrUserHasNoAccessToMarket)
 		span.SetStatus(codes.Error, "no access rights")
 
@@ -99,7 +96,6 @@ func (s *Service) getAuthorizedUser(ctx context.Context, request *dto.CreateOrde
 
 func (s *Service) ensureMarketsAccess(ctx context.Context, userID uuid.UUID, roles *dto.ViewMarketsRequest) *errors.CustomError {
 	const method = "ensureMarketsAccess"
-
 	ctx, span := s.tracer.Start(ctx, "OrderService.ensureMarketsAccess")
 	defer span.End()
 
@@ -113,7 +109,7 @@ func (s *Service) ensureMarketsAccess(ctx context.Context, userID uuid.UUID, rol
 		return err
 	}
 
-	if len(marketsCache) != 0 {
+	if len(marketsCache) != 0 || marketsCache != nil {
 		return nil
 	}
 

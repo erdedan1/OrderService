@@ -8,7 +8,6 @@ import (
 
 	pb "github.com/erdedan1/protocol/proto/order_service/gen/v2"
 	log "github.com/erdedan1/shared/logger"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	grpc_codes "google.golang.org/grpc/codes"
@@ -23,11 +22,11 @@ type Handler struct {
 	pb.UnimplementedOrderServiceServer
 }
 
-func New(orderService usecase.OrderService, log log.Logger) *Handler {
+func New(orderService usecase.OrderService, log log.Logger, tp trace.TracerProvider) *Handler {
 	return &Handler{
 		orderService: orderService,
 		log:          log,
-		tracer:       otel.Tracer("order-service/OrderHandler"),
+		tracer:       tp.Tracer("order-service/OrderHandler"),
 	}
 }
 

@@ -2,6 +2,6 @@ package config
 
 import "time"
 
-type OrderLifecycleConfig struct {
-	StepInterval time.Duration `env:"ORDER_LIFECYCLE_STEP_INTERVAL" env-default:"5s" validate:"gt=0"`
+type OrderLifecircuitConfig struct {
+	StepInterval time.Duration `env:"ORDER_LIFECIRCUIT_STEP_INTERVAL" env-default:"5s" validate:"gt=0"`
 }

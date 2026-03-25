@@ -36,9 +36,8 @@ const layer = "RedisMarketCache"
 
 func (c *redisMarketsCache) Set(ctx context.Context, key string, value []dto.ViewMarketsResponse, ttl time.Duration) *error.CustomError {
 	const method = "Set"
-	ctx, span := c.tracer.Start(ctx, "OrderRedisRepo.Set")
+	ctx, span := c.tracer.Start(ctx, "RedisMarketCache.Set")
 	defer span.End()
-
 	span.SetAttributes(
 		attribute.String("key", key),
 	)
@@ -71,7 +70,7 @@ func (c *redisMarketsCache) Set(ctx context.Context, key string, value []dto.Vie
 func (c *redisMarketsCache) Get(ctx context.Context, key string) ([]dto.ViewMarketsResponse, *error.CustomError) {
 	const method = "Get"
 
-	ctx, span := c.tracer.Start(ctx, "OrderRedisRepo.Get")
+	ctx, span := c.tracer.Start(ctx, "RedisMarketCache.Get")
 	defer span.End()
 
 	span.SetAttributes(
@@ -97,6 +96,7 @@ func (c *redisMarketsCache) Get(ctx context.Context, key string) ([]dto.ViewMark
 	}
 
 	var result []dto.ViewMarketsResponse
+
 	if err := json.Unmarshal([]byte(val), &result); err != nil {
 		span.RecordError(errs.ErrFailedDeserializeRedis)
 		span.SetStatus(codes.Error, errs.ErrFailedDeserializeRedis.Message)
@@ -104,7 +104,6 @@ func (c *redisMarketsCache) Get(ctx context.Context, key string) ([]dto.ViewMark
 		c.log.Error(layer, method, "failed to unmarshal data", err)
 		return nil, errs.ErrFailedDeserializeRedis
 	}
-
 	span.SetStatus(codes.Ok, "market success get in cache redis")
 
 	c.log.Debug(layer, method, "success get market in cache redis")

@@ -72,6 +72,9 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		return nil, err
 	}
 
+	lifecircuitCtx := context.WithoutCancel(ctx)
+	go s.publishOrderLifecircuit(lifecircuitCtx, order.ID, order.Status)
+
 	go func(initialStatus model.OrderStatus, initialUpdatedAt *time.Time) {
 		defer close(ch)
 
@@ -116,8 +119,8 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	return ch, nil
 }
 
-func (s *Service) publishOrderLifecycle(ctx context.Context, orderID uuid.UUID, initialStatus model.OrderStatus) {
-	const method = "publishOrderLifecycle"
+func (s *Service) publishOrderLifecircuit(ctx context.Context, orderID uuid.UUID, initialStatus model.OrderStatus) {
+	const method = "publishOrderLifecircuit"
 
 	s.log.Debug(layer, method, "start new sobitie")
 
@@ -131,7 +134,7 @@ func (s *Service) publishOrderLifecycle(ctx context.Context, orderID uuid.UUID, 
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(config.Global.Infrastructure.OrderLifecycleConfig.StepInterval):
+		case <-time.After(config.Global.Infrastructure.OrderLifecircuitConfig.StepInterval):
 		}
 		if updateErr := s.UpdateOrderStatus(ctx, orderID, nextStatus); updateErr != nil {
 			return

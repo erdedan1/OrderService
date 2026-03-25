@@ -17,9 +17,10 @@ type Config struct {
 }
 
 type InfrastructureConfig struct {
-	RedisConfig          RedisConfig          `validate:"required"`
-	Observability        Observability        `validate:"required"`
-	OrderLifecycleConfig OrderLifecycleConfig `validate:"required"`
+	RedisConfig            RedisConfig            `validate:"required"`
+	Observability          Observability          `validate:"required"`
+	OrderLifecircuitConfig OrderLifecircuitConfig `validate:"required"`
+	ResilienceConfig       ResilienceConfig       `validate:"required"`
 }
 
 type GRPCApiConfig struct {

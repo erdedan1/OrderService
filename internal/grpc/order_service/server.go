@@ -12,6 +12,7 @@ import (
 	"github.com/erdedan1/shared/interceptors/recovery"
 	requestid "github.com/erdedan1/shared/interceptors/request_id"
 	log "github.com/erdedan1/shared/logger"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 )
 
@@ -22,7 +23,7 @@ type GRPCServer struct {
 	lis     net.Listener
 }
 
-func NewGRPCServer(address string, orderService usecase.OrderService, logger log.Logger) (*GRPCServer, *errs.CustomError) {
+func NewGRPCServer(address string, orderService usecase.OrderService, logger log.Logger, tp trace.TracerProvider) (*GRPCServer, *errs.CustomError) {
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			requestid.XRequestIDServerInterceptor(),
@@ -31,7 +32,7 @@ func NewGRPCServer(address string, orderService usecase.OrderService, logger log
 		),
 	)
 
-	handler := New(orderService, logger)
+	handler := New(orderService, logger, tp)
 	pbOrder.RegisterOrderServiceServer(server, handler)
 
 	return &GRPCServer{

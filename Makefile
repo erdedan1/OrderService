@@ -5,3 +5,6 @@ migrate-up:
 
 migrate-down:
 	goose -dir internal/migrations postgres "$(MIGRATE_URL)" down
+
+migrate-reset:
+	goose -dir internal/migrations postgres "$(MIGRATE_URL)" reset

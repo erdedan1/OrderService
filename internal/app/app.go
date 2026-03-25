@@ -44,7 +44,7 @@ func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, 
 		return nil, err
 	}
 
-	userRepo := user.NewRepo(log)
+	userRepo := user.NewRepo(log, tp)
 
 	subscriber := orderStatusRepo.NewRedisSubscriber(redis, log, tp)
 	publisher := orderStatusRepo.NewRedisPublisher(redis, log, tp)
@@ -67,7 +67,20 @@ func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, 
 		tp,
 	)
 
-	grpcServer, err := order_service.NewGRPCServer(cfg.GRPCServer.Address, orderService, log)
+	ordSrvCircuitBreaker := orderSrv.NewCircuitBreaker(
+		orderService,
+		cfg.Infrastructure.ResilienceConfig.CircuitBreaker.ConsecutiveFailures,
+		cfg.Infrastructure.ResilienceConfig.CircuitBreaker.HalfOpenRequests,
+		cfg.Infrastructure.ResilienceConfig.CircuitBreaker.OpenTimeout,
+	)
+
+	ordSrvRateLimiter := orderSrv.NewRateLimiter(
+		ordSrvCircuitBreaker,
+		cfg.Infrastructure.ResilienceConfig.RateLimiter.RequestsPerSecond,
+		cfg.Infrastructure.ResilienceConfig.RateLimiter.Burst,
+	)
+
+	grpcServer, err := order_service.NewGRPCServer(cfg.GRPCServer.Address, ordSrvRateLimiter, log, tp)
 	if err != nil {
 		return nil, err
 	}
