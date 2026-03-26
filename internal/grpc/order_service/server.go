@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 
+	"OrderService/config"
 	"OrderService/internal/usecase"
 
 	pbOrder "github.com/erdedan1/protocol/proto/order_service/gen/v2"
@@ -23,12 +24,29 @@ type GRPCServer struct {
 	lis     net.Listener
 }
 
-func NewGRPCServer(address string, orderService usecase.OrderService, logger log.Logger, tp trace.TracerProvider) (*GRPCServer, *errs.CustomError) {
+func NewGRPCServer(address string, orderService usecase.OrderService, logger log.Logger, tp trace.TracerProvider, resilienceCfg config.ResilienceConfig) (*GRPCServer, *errs.CustomError) {
+	rateLimiter := newGRPCRateLimiter(
+		resilienceCfg.RateLimiter.RequestsPerSecond,
+		resilienceCfg.RateLimiter.Burst,
+	)
+
+	cycleBreaker := newGRPCCircuitBreaker(
+		uint32(resilienceCfg.CircuitBreaker.ConsecutiveFailures),
+		resilienceCfg.CircuitBreaker.HalfOpenRequests,
+		resilienceCfg.CircuitBreaker.OpenTimeout,
+	)
+
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			requestid.XRequestIDServerInterceptor(),
 			pbLogger.LoggerServerInterceptor(logger),
 			recovery.RecoveryServerInterceptor(logger),
+			rateLimiter.Unary(),
+			cycleBreaker.Unary(),
+		),
+		grpc.ChainStreamInterceptor(
+			rateLimiter.Stream(),
+			cycleBreaker.Stream(),
 		),
 	)
 

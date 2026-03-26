@@ -67,20 +67,7 @@ func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, 
 		tp,
 	)
 
-	ordSrvCircuitBreaker := orderSrv.NewCircuitBreaker(
-		orderService,
-		cfg.Infrastructure.ResilienceConfig.CircuitBreaker.ConsecutiveFailures,
-		cfg.Infrastructure.ResilienceConfig.CircuitBreaker.HalfOpenRequests,
-		cfg.Infrastructure.ResilienceConfig.CircuitBreaker.OpenTimeout,
-	)
-
-	ordSrvRateLimiter := orderSrv.NewRateLimiter(
-		ordSrvCircuitBreaker,
-		cfg.Infrastructure.ResilienceConfig.RateLimiter.RequestsPerSecond,
-		cfg.Infrastructure.ResilienceConfig.RateLimiter.Burst,
-	)
-
-	grpcServer, err := order_service.NewGRPCServer(cfg.GRPCServer.Address, ordSrvRateLimiter, log, tp)
+	grpcServer, err := order_service.NewGRPCServer(cfg.GRPCServer.Address, orderService, log, tp, config.Global.Infrastructure.ResilienceConfig)
 	if err != nil {
 		return nil, err
 	}
