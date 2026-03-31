@@ -7,7 +7,7 @@ import (
 	"OrderService/config"
 	"OrderService/internal/usecase"
 
-	pbOrder "github.com/erdedan1/protocol/proto/order_service/gen/v2"
+	pbOrder "github.com/erdedan1/protocol/proto/order_service/gen/v1"
 	"github.com/erdedan1/shared/errs"
 	pbLogger "github.com/erdedan1/shared/interceptors/logger"
 	"github.com/erdedan1/shared/interceptors/recovery"
@@ -24,16 +24,16 @@ type GRPCServer struct {
 	lis     net.Listener
 }
 
-func NewGRPCServer(address string, orderService usecase.OrderService, logger log.Logger, tp trace.TracerProvider, resilienceCfg config.ResilienceConfig) (*GRPCServer, *errs.CustomError) {
+func NewGRPCServer(address string, orderService usecase.OrderService, logger log.Logger, tp trace.TracerProvider, cfg config.InfrastructureConfig) (*GRPCServer, *errs.CustomError) {
 	rateLimiter := newGRPCRateLimiter(
-		resilienceCfg.RateLimiter.RequestsPerSecond,
-		resilienceCfg.RateLimiter.Burst,
+		cfg.RateLimiter.RequestsPerSecond,
+		cfg.RateLimiter.Burst,
 	)
 
 	cycleBreaker := newGRPCCircuitBreaker(
-		uint32(resilienceCfg.CircuitBreaker.ConsecutiveFailures),
-		resilienceCfg.CircuitBreaker.HalfOpenRequests,
-		resilienceCfg.CircuitBreaker.OpenTimeout,
+		uint32(cfg.CircuitBreaker.ConsecutiveFailures),
+		cfg.CircuitBreaker.HalfOpenRequests,
+		cfg.CircuitBreaker.OpenTimeout,
 	)
 
 	server := grpc.NewServer(

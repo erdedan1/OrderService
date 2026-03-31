@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// оставить глобальный + добавить на каждого клиента(пользователя)
+
 type grpcRateLimiter struct {
 	mu               sync.Mutex
 	requestsPerSec   float64

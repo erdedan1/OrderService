@@ -1,26 +1,28 @@
 package dto
 
 import (
-	pb "github.com/erdedan1/protocol/proto/order_service/gen/v2"
+	errs "OrderService/internal/errors"
+
+	pb "github.com/erdedan1/protocol/proto/order_service/gen/v1"
 	errors "github.com/erdedan1/shared/errs"
 	"github.com/google/uuid"
 )
 
 type GetOrderStatusRequest struct {
-	UserID  uuid.UUID
-	OrderID uuid.UUID
+	UserUUID  uuid.UUID
+	OrderUUID uuid.UUID
 }
 
 func (g *GetOrderStatusRequest) FromProto(request *pb.GetOrderStatusRequest) (*GetOrderStatusRequest, *errors.CustomError) {
 	if err := request.Validate(); err != nil {
-		return nil, errors.New(errors.INVALID_ARGUMENT, "invalid request", err)
+		return nil, errs.ErrInvalidArgument
 	}
 
-	userId, _ := uuid.Parse(request.UserId)
-	orderId, _ := uuid.Parse(request.OrderId)
+	userId, _ := uuid.Parse(request.UserUuid)
+	orderId, _ := uuid.Parse(request.OrderUuid)
 
-	g.UserID = userId
-	g.OrderID = orderId
+	g.UserUUID = userId
+	g.OrderUUID = orderId
 
 	return g, nil
 }

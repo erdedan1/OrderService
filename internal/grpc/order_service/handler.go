@@ -6,7 +6,7 @@ import (
 	"OrderService/internal/dto"
 	"OrderService/internal/usecase"
 
-	pb "github.com/erdedan1/protocol/proto/order_service/gen/v2"
+	pb "github.com/erdedan1/protocol/proto/order_service/gen/v1"
 	log "github.com/erdedan1/shared/logger"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"

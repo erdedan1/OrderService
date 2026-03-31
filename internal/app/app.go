@@ -65,9 +65,10 @@ func Build(cfg *config.Config, log log.Logger, tp *trace.TracerProvider) (*App, 
 		publisher,
 		log,
 		tp,
+		cfg,
 	)
 
-	grpcServer, err := order_service.NewGRPCServer(cfg.GRPCServer.Address, orderService, log, tp, config.Global.Infrastructure.ResilienceConfig)
+	grpcServer, err := order_service.NewGRPCServer(cfg.GRPCServer.Address, orderService, log, tp, cfg.Infrastructure)
 	if err != nil {
 		return nil, err
 	}

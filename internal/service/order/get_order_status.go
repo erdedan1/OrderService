@@ -16,11 +16,11 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("user.id", request.UserID.String()),
-		attribute.String("order.id", request.OrderID.String()),
+		attribute.String("user.id", request.UserUUID.String()),
+		attribute.String("order.id", request.OrderUUID.String()),
 	)
 
-	order, err := s.orderRepo.GetOrder(ctx, request.OrderID, request.UserID)
+	order, err := s.orderRepo.GetOrder(ctx, request.OrderUUID, request.UserUUID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -28,8 +28,8 @@ func (s *Service) GetOrderStatus(ctx context.Context, request *dto.GetOrderStatu
 		s.log.Error(
 			layer, method,
 			err.Error(), err,
-			"user_id", request.UserID,
-			"order_id", request.OrderID,
+			"user_id", request.UserUUID,
+			"order_id", request.OrderUUID,
 		)
 		return nil, err
 	}

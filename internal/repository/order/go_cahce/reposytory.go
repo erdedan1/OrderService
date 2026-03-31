@@ -112,7 +112,7 @@ func (r *Repo) UpdateOrderStatus(ctx context.Context, id uuid.UUID, status model
 			method,
 			"order success updated",
 			"order_id", id,
-			"user_id", o.UserID,
+			"user_id", o.UserUUID,
 			"order_status", o.Status,
 		)
 		o.Status = status

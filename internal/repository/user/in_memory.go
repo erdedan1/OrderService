@@ -15,7 +15,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// тут трейсы как будто бы тоже закинуть нужно но это нигде не используется так то
 type Repo struct {
 	Users  map[uuid.UUID]model.User
 	mu     *sync.RWMutex
@@ -32,24 +31,24 @@ func NewRepo(logger log.Logger, tp trace.TracerProvider) *Repo {
 	}
 	users := []model.User{
 		{
-			ID:    uuid.MustParse("1179803e-06f0-4369-b94f-14e26ec190a3"),
-			Name:  "Gleb",
-			Roles: []string{"TRADER"},
+			ID:   uuid.MustParse("1179803e-06f0-4369-b94f-14e26ec190a3"),
+			Name: "Gleb",
+			Role: "TRADER",
 		},
 		{
-			ID:    uuid.MustParse("2179803e-06f0-4369-b94f-14e26ec190a3"),
-			Name:  "Oleg",
-			Roles: []string{"ADMIN"},
+			ID:   uuid.MustParse("2179803e-06f0-4369-b94f-14e26ec190a3"),
+			Name: "Oleg",
+			Role: "ADMIN",
 		},
 		{
-			ID:    uuid.MustParse("3179803e-06f0-4369-b94f-14e26ec190a3"),
-			Name:  "Vova",
-			Roles: []string{"TRADER"},
+			ID:   uuid.MustParse("3179803e-06f0-4369-b94f-14e26ec190a3"),
+			Name: "Vova",
+			Role: "TRADER",
 		},
 		{
-			ID:    uuid.MustParse("4179803e-06f0-4369-b94f-14e26ec190a3"),
-			Name:  "Arsen",
-			Roles: []string{"ADMIN"},
+			ID:   uuid.MustParse("4179803e-06f0-4369-b94f-14e26ec190a3"),
+			Name: "Arsen",
+			Role: "ADMIN",
 		},
 	}
 	for _, user := range users {

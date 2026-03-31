@@ -1,7 +1,6 @@
 package order
 
 import (
-	"OrderService/config"
 	"OrderService/internal/dto"
 	errs "OrderService/internal/errors"
 	"OrderService/internal/model"
@@ -13,14 +12,20 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderRequest) (*dto.CreateOrderResponse, *errors.CustomError) {
+func (s *Service) CreateOrder(
+	ctx context.Context,
+	request *dto.CreateOrderRequest,
+) (
+	*dto.CreateOrderResponse,
+	*errors.CustomError,
+) {
 	const method = "CreateOrder"
 
 	ctx, span := s.tracer.Start(ctx, "OrderService.CreateOrder")
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("user.id", request.UserID.String()),
+		attribute.String("user.id", request.UserUUID.String()),
 	)
 
 	user, err := s.getAuthorizedUser(ctx, request)
@@ -28,13 +33,13 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		return nil, err
 	}
 
-	if err := s.ensureMarketsAccess(ctx, request.UserID, &dto.ViewMarketsRequest{UserRoles: user.Roles}); err != nil {
+	if err := s.ensureMarketsAccess(ctx, request.UserUUID, &dto.ViewMarketsRequest{UserRole: user.Role}); err != nil {
 		return nil, err
 	}
 
 	req := model.NewOrder(
-		request.UserID,
-		request.MarketID,
+		request.UserUUID,
+		request.MarketUUID,
 		request.Quantity,
 		request.Price,
 		request.OrderType,
@@ -48,7 +53,7 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 		s.log.Error(
 			layer, method,
 			err.Error(), err,
-			"user_id", request.UserID,
+			"user_id", request.UserUUID,
 		)
 		return nil, err
 	}
@@ -63,10 +68,14 @@ func (s *Service) CreateOrder(ctx context.Context, request *dto.CreateOrderReque
 	s.log.Debug(layer, method, "order success created")
 
 	return &dto.CreateOrderResponse{
-		ID:     order.ID,
-		Status: order.Status.ToString(),
+		OrderUUID: order.ID,
+		Status:    order.Status.ToString(),
+		CreatedAt: order.CreatedAt,
+		UpdatedAt: order.UpdatedAt,
 	}, nil
 }
+
+// добавить в контекст user_id и проверять его(чтобы не создавать под другим пользователем order)
 
 func (s *Service) getAuthorizedUser(ctx context.Context, request *dto.CreateOrderRequest) (*model.User, *errors.CustomError) {
 	const method = "getAuthorizedUser"
@@ -74,20 +83,20 @@ func (s *Service) getAuthorizedUser(ctx context.Context, request *dto.CreateOrde
 	ctx, span := s.tracer.Start(ctx, "OrderService.getAuthorizedUser")
 	defer span.End()
 
-	user, err := s.userRepo.GetUserById(ctx, request.UserID)
+	user, err := s.userRepo.GetUserById(ctx, request.UserUUID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 
-		s.log.Error(layer, method, err.Error(), err, "user_id", request.UserID)
+		s.log.Error(layer, method, err.Error(), err, "user_id", request.UserUUID)
 		return nil, err
 	}
 
-	if !user.CheckRoles(request.UserRoles) { //а зачем мы передаем userRole если они есть в user?
+	if user.Role != request.UserRole || user.ID != request.UserUUID {
 		span.RecordError(errs.ErrUserHasNoAccessToMarket)
 		span.SetStatus(codes.Error, "no access rights")
 
-		s.log.Error(layer, method, "user has no acces to market", errs.ErrUserHasNoAccessToMarket, "user_id", request.UserID)
+		s.log.Error(layer, method, "user has no acces to market", errs.ErrUserHasNoAccessToMarket, "user_id", request.UserUUID)
 		return nil, errs.ErrUserHasNoAccessToMarket
 	}
 
@@ -130,7 +139,7 @@ func (s *Service) ensureMarketsAccess(ctx context.Context, userID uuid.UUID, rol
 		return errs.ErrMarketNotFound
 	}
 
-	err = s.marketCache.Set(ctx, cacheKey, markets, config.Global.Infrastructure.RedisConfig.TTL)
+	err = s.marketCache.Set(ctx, cacheKey, markets, s.cfg.Infrastructure.RedisConfig.TTL)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

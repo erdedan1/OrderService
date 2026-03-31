@@ -1,6 +1,7 @@
 package order
 
 import (
+	"OrderService/config"
 	"OrderService/internal/usecase"
 
 	log "github.com/erdedan1/shared/logger"
@@ -16,6 +17,7 @@ type Service struct {
 	orderStatusPublisher  usecase.OrderStatusPublisher
 	log                   log.Logger
 	tracer                trace.Tracer
+	cfg                   config.Config
 }
 
 func New(
@@ -27,6 +29,7 @@ func New(
 	orderStatusPublisher usecase.OrderStatusPublisher,
 	log log.Logger,
 	tp trace.TracerProvider,
+	cfg *config.Config,
 ) *Service {
 	return &Service{
 		orderRepo:             repo,
@@ -37,6 +40,7 @@ func New(
 		orderStatusPublisher:  orderStatusPublisher,
 		log:                   log,
 		tracer:                tp.Tracer("order-service/Service"),
+		cfg:                   *cfg,
 	}
 }
 

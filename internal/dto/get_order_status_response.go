@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	pb "github.com/erdedan1/protocol/proto/order_service/gen/v2"
+	pb "github.com/erdedan1/protocol/proto/order_service/gen/v1"
 	m "github.com/erdedan1/shared/mapper"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

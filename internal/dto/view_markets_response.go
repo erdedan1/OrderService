@@ -1,9 +1,10 @@
 package dto
 
 import (
+	errs "OrderService/internal/errors"
 	"time"
 
-	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen/v2"
+	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen/v1"
 	errors "github.com/erdedan1/shared/errs"
 
 	"github.com/google/uuid"
@@ -11,7 +12,7 @@ import (
 )
 
 type ViewMarketsResponse struct {
-	ID        uuid.UUID
+	UUID      uuid.UUID
 	Name      string
 	Enabled   bool
 	CreatedAt *time.Time
@@ -21,9 +22,9 @@ type ViewMarketsResponse struct {
 
 func (v *ViewMarketsResponse) ToProto() *pb.Market {
 	market := &pb.Market{
-		Id:      v.ID.String(),
-		Name:    v.Name,
-		Enabled: v.Enabled,
+		MarketUuid: v.UUID.String(),
+		Name:       v.Name,
+		Enabled:    v.Enabled,
 	}
 
 	if v.CreatedAt != nil {
@@ -43,11 +44,11 @@ func (v *ViewMarketsResponse) ToProto() *pb.Market {
 
 func (v *ViewMarketsResponse) FromProto(market *pb.Market) (*ViewMarketsResponse, *errors.CustomError) {
 	if err := market.Validate(); err != nil {
-		return nil, errors.New(errors.INVALID_ARGUMENT, "invalid request", err)
+		return nil, errs.ErrInvalidArgument
 	}
-	id, _ := uuid.Parse(market.Id)
+	id, _ := uuid.Parse(market.MarketUuid)
 
-	v.ID = id
+	v.UUID = id
 	v.Name = market.Name
 	v.Enabled = market.Enabled
 	v.CreatedAt = new(market.CreatedAt.AsTime())

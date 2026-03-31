@@ -20,7 +20,7 @@ func (r *Repository) CreateOrder(ctx context.Context, order *model.Order) (*mode
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at
 	`
-	row := r.db.QueryRowxContext(ctx, query, order.UserID, order.MarketID, order.Quantity, order.Type, order.Status, order.Price)
+	row := r.db.QueryRowxContext(ctx, query, order.UserUUID, order.MarketUUID, order.Quantity, order.Type, order.Status, order.Price)
 
 	err := row.Scan(&order.ID, &order.CreatedAt)
 	if err != nil {

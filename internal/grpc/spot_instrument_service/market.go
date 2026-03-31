@@ -7,7 +7,7 @@ import (
 	"OrderService/internal/dto"
 	grpc_client "OrderService/pkg/client/grpc"
 
-	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen/v2"
+	pb "github.com/erdedan1/protocol/proto/spot_instrument_service/gen/v1"
 	"github.com/erdedan1/shared/errs"
 	"go.opentelemetry.io/otel/trace"
 )

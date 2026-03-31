@@ -8,16 +8,16 @@ import (
 )
 
 type Order struct {
-	ID        uuid.UUID       `db:"id"`
-	UserID    uuid.UUID       `db:"user_id"`
-	MarketID  uuid.UUID       `db:"market_id"`
-	Quantity  int64           `db:"quantity"`
-	Type      string          `db:"order_type"`
-	Status    OrderStatus     `db:"order_status"`
-	Price     decimal.Decimal `db:"price"`
-	CreatedAt *time.Time      `db:"created_at"`
-	UpdatedAt *time.Time      `db:"updated_at"`
-	DeletedAt *time.Time      `db:"deleted_at"`
+	ID         uuid.UUID       `db:"id"`
+	UserUUID   uuid.UUID       `db:"user_id"`
+	MarketUUID uuid.UUID       `db:"market_id"`
+	Quantity   int64           `db:"quantity"`
+	Type       string          `db:"order_type"`
+	Status     OrderStatus     `db:"order_status"`
+	Price      decimal.Decimal `db:"price"`
+	CreatedAt  *time.Time      `db:"created_at"`
+	UpdatedAt  *time.Time      `db:"updated_at"`
+	DeletedAt  *time.Time      `db:"deleted_at"`
 }
 
 type OrderStatus string
@@ -114,17 +114,18 @@ func NextOrderStatus(current OrderStatus) (OrderStatus, bool) {
 
 func NewOrder(
 	userID, marketID uuid.UUID,
-	quantity, price int64,
+	quantity int64,
+	price decimal.Decimal,
 	orderType string,
 ) *Order {
-	currentPrice := decimal.NewFromInt(price)
+
 	return &Order{
-		UserID:    userID,
-		MarketID:  marketID,
-		Quantity:  quantity,
-		Type:      orderType,
-		Status:    StatusCreated,
-		Price:     currentPrice,
-		CreatedAt: new(time.Now()),
+		UserUUID:   userID,
+		MarketUUID: marketID,
+		Quantity:   quantity,
+		Type:       orderType,
+		Status:     StatusCreated,
+		Price:      price,
+		CreatedAt:  new(time.Now()),
 	}
 }

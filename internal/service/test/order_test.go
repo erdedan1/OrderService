@@ -5,20 +5,23 @@ import (
 	"testing"
 	"time"
 
+	"OrderService/config"
 	"OrderService/internal/dto"
 	"OrderService/internal/errors"
 	"OrderService/internal/model"
+	"OrderService/internal/service/order"
 	"OrderService/mocks"
 
 	log "github.com/erdedan1/shared/logger"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func preparingTests(t *testing.T) (
-	*Service,
+	*order.Service,
 	*mocks.OrderRepo,
 	*mocks.UserRepo,
 	*mocks.MarketCacheRepo,
@@ -37,7 +40,7 @@ func preparingTests(t *testing.T) (
 	logger, _ := log.NewLogger("debug")
 	defer logger.Sync()
 
-	service := New(
+	service := order.New(
 		orderRepo,
 		userRepo,
 		cache,
@@ -46,6 +49,7 @@ func preparingTests(t *testing.T) (
 		publisher,
 		logger,
 		noop.NewTracerProvider(),
+		&config.Config{},
 	)
 	return service, orderRepo, userRepo, cache, marketSrv, subscriber, publisher
 }
@@ -54,15 +58,15 @@ func TestCreateOrder_Success(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.MustParse("1179803e-06f0-4369-b94f-14e26ec190a3")
-	user := &model.User{ID: userID, Roles: []string{"USER_ROLE_TRADER"}}
-	order := &model.Order{ID: uuid.New(), Status: model.StatusCreated, UserID: userID}
+	user := &model.User{ID: userID, Role: "USER_ROLE_TRADER"}
+	order := &model.Order{ID: uuid.New(), Status: model.StatusCreated, UserUUID: userID}
 
 	userRepo.On("GetUserById", mock.Anything, userID).
 		Return(user, nil)
 	cache.On("Get", mock.Anything, mock.Anything).
 		Return(nil, nil)
-	marketSrv.On("ViewMarketsByRoles", mock.Anything, mock.Anything).
-		Return([]dto.ViewMarketsResponse{{ID: uuid.New()}}, nil)
+	marketSrv.On("ViewMarketsByRole", mock.Anything, mock.Anything).
+		Return([]dto.ViewMarketsResponse{{UUID: uuid.New()}}, nil)
 	cache.On("Set", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil)
 	cache.On("Del", mock.Anything, mock.Anything).
@@ -73,16 +77,16 @@ func TestCreateOrder_Success(t *testing.T) {
 		Return(order, nil)
 
 	res, err := service.CreateOrder(ctx, &dto.CreateOrderRequest{
-		MarketID:  uuid.New(),
-		UserID:    userID,
-		OrderType: "Test_type",
-		Price:     120,
-		UserRoles: user.Roles,
-		Quantity:  1,
+		MarketUUID: uuid.New(),
+		UserUUID:   userID,
+		OrderType:  "Test_type",
+		Price:      decimal.NewFromInt(120),
+		UserRole:   user.Role,
+		Quantity:   1,
 	})
 
 	assert.Nil(t, err)
-	assert.Equal(t, order.ID, res.ID)
+	assert.Equal(t, order.ID, res.OrderUUID)
 	assert.Equal(t, order.Status.ToString(), res.Status)
 
 	userRepo.AssertExpectations(t)
@@ -97,18 +101,18 @@ func TestCreateOrder_User_No_Acess(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.MustParse("1179803e-06f0-4369-b94f-14e26ec190a3")
-	user := &model.User{ID: userID, Roles: []string{"USER_ROLE_TRADER"}}
+	user := &model.User{ID: userID, Role: "USER_ROLE_TRADER"}
 
 	userRepo.On("GetUserById", mock.Anything, userID).
 		Return(user, nil)
 
 	res, err := service.CreateOrder(ctx, &dto.CreateOrderRequest{
-		MarketID:  uuid.New(),
-		UserID:    userID,
-		OrderType: "Test_type",
-		Price:     120,
-		UserRoles: []string{"TEST_ROLE"},
-		Quantity:  1,
+		MarketUUID: uuid.New(),
+		UserUUID:   userID,
+		OrderType:  "Test_type",
+		Price:      decimal.NewFromInt(120),
+		UserRole:   "TEST_ROLE",
+		Quantity:   1,
 	})
 
 	assert.Nil(t, res)
@@ -128,12 +132,12 @@ func TestCreateOrder_UserRepo_Error(t *testing.T) {
 		Return(nil, errors.ErrUserNotFound)
 
 	res, err := service.CreateOrder(ctx, &dto.CreateOrderRequest{
-		MarketID:  uuid.New(),
-		UserID:    userID,
-		OrderType: "Test_type",
-		Price:     120,
-		UserRoles: []string{"USER_ROLE_TRADER"},
-		Quantity:  1,
+		MarketUUID: uuid.New(),
+		UserUUID:   userID,
+		OrderType:  "Test_type",
+		Price:      decimal.NewFromInt(120),
+		UserRole:   "USER_ROLE_TRADER",
+		Quantity:   1,
 	})
 
 	assert.Nil(t, res)
@@ -147,23 +151,23 @@ func TestCreateOrder_Market_Not_Found(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.MustParse("1179803e-06f0-4369-b94f-14e26ec190a3")
-	userRoles := []string{"USER_ROLE_TRADER"}
-	user := &model.User{ID: userID, Roles: []string{"USER_ROLE_TRADER"}}
+	userRole := "USER_ROLE_TRADER"
+	user := &model.User{ID: userID, Role: "USER_ROLE_TRADER"}
 
 	userRepo.On("GetUserById", mock.Anything, userID).
 		Return(user, nil)
 	cache.On("Get", mock.Anything, mock.Anything).
 		Return(nil, nil)
-	marketSrv.On("ViewMarketsByRoles", mock.Anything, mock.Anything).
+	marketSrv.On("ViewMarketsByRole", mock.Anything, mock.Anything).
 		Return(nil, errors.ErrMarketNotFound)
 
 	res, err := service.CreateOrder(ctx, &dto.CreateOrderRequest{
-		MarketID:  uuid.New(),
-		UserID:    userID,
-		OrderType: "Test_type",
-		Price:     120,
-		UserRoles: userRoles,
-		Quantity:  1,
+		MarketUUID: uuid.New(),
+		UserUUID:   userID,
+		OrderType:  "Test_type",
+		Price:      decimal.NewFromInt(120),
+		UserRole:   userRole,
+		Quantity:   1,
 	})
 
 	assert.Nil(t, res)
@@ -181,17 +185,17 @@ func TestGetOrderStatus_Success(t *testing.T) {
 	orderID := uuid.New()
 
 	order := &model.Order{
-		ID:     orderID,
-		UserID: userID,
-		Status: model.StatusCreated,
+		ID:       orderID,
+		UserUUID: userID,
+		Status:   model.StatusCreated,
 	}
 
 	orderRepo.On("GetOrder", mock.Anything, orderID).
 		Return(order, nil)
 
 	res, err := service.GetOrderStatus(ctx, &dto.GetOrderStatusRequest{
-		UserID:  userID,
-		OrderID: orderID,
+		UserUUID:  userID,
+		OrderUUID: orderID,
 	})
 
 	assert.Nil(t, err)
@@ -213,8 +217,8 @@ func TestGetOrderStatus_OrderRepo_Error(t *testing.T) {
 		Return(nil, errors.ErrOrderNotFound)
 
 	res, err := service.GetOrderStatus(ctx, &dto.GetOrderStatusRequest{
-		UserID:  userID,
-		OrderID: orderID,
+		UserUUID:  userID,
+		OrderUUID: orderID,
 	})
 
 	assert.Nil(t, res)
@@ -223,26 +227,26 @@ func TestGetOrderStatus_OrderRepo_Error(t *testing.T) {
 	orderRepo.AssertExpectations(t)
 }
 
-func TestGetOrderStatus_InvalidUserID(t *testing.T) {
+func TestGetOrderStatus_InvalidUserUUID(t *testing.T) {
 	service, orderRepo, _, _, _, _, _ := preparingTests(t)
 	ctx := context.Background()
 
 	userID := uuid.New()
-	anotherUserID := uuid.New()
+	anotherUserUUID := uuid.New()
 	orderID := uuid.New()
 
 	order := &model.Order{
-		ID:     orderID,
-		UserID: anotherUserID,
-		Status: model.StatusCreated,
+		ID:       orderID,
+		UserUUID: anotherUserUUID,
+		Status:   model.StatusCreated,
 	}
 
 	orderRepo.On("GetOrder", mock.Anything, orderID).
 		Return(order, nil)
 
 	res, err := service.GetOrderStatus(ctx, &dto.GetOrderStatusRequest{
-		UserID:  userID,
-		OrderID: orderID,
+		UserUUID:  userID,
+		OrderUUID: orderID,
 	})
 
 	assert.Nil(t, res)
@@ -263,8 +267,8 @@ func TestSubscribeOrderStatus_GetOrder_Error(t *testing.T) {
 		Return(nil, errors.ErrOrderNotFound)
 
 	ch, err := service.SubscribeOrderStatus(ctx, &dto.GetOrderStatusRequest{
-		UserID:  userID,
-		OrderID: orderID,
+		UserUUID:  userID,
+		OrderUUID: orderID,
 	})
 
 	assert.Nil(t, ch)
@@ -273,7 +277,7 @@ func TestSubscribeOrderStatus_GetOrder_Error(t *testing.T) {
 	orderRepo.AssertExpectations(t)
 }
 
-func TestSubscribeOrderStatus_InvalidUserID(t *testing.T) {
+func TestSubscribeOrderStatus_InvalidUserUUID(t *testing.T) {
 	service, orderRepo, _, _, _, _, _ := preparingTests(t)
 	ctx := context.Background()
 
@@ -281,17 +285,17 @@ func TestSubscribeOrderStatus_InvalidUserID(t *testing.T) {
 	userID := uuid.New()
 
 	order := &model.Order{
-		ID:     orderID,
-		UserID: uuid.New(),
-		Status: model.StatusCreated,
+		ID:       orderID,
+		UserUUID: uuid.New(),
+		Status:   model.StatusCreated,
 	}
 
 	orderRepo.On("GetOrder", mock.Anything, orderID).
 		Return(order, nil)
 
 	ch, err := service.SubscribeOrderStatus(ctx, &dto.GetOrderStatusRequest{
-		UserID:  userID,
-		OrderID: orderID,
+		UserUUID:  userID,
+		OrderUUID: orderID,
 	})
 
 	assert.NotNil(t, ch)
@@ -312,7 +316,7 @@ func TestSubscribeOrderStatus_OrderClosed(t *testing.T) {
 
 	order := &model.Order{
 		ID:        orderID,
-		UserID:    userID,
+		UserUUID:  userID,
 		Status:    model.StatusClosed,
 		UpdatedAt: &now,
 	}
@@ -321,8 +325,8 @@ func TestSubscribeOrderStatus_OrderClosed(t *testing.T) {
 		Return(order, nil)
 
 	ch, err := service.SubscribeOrderStatus(ctx, &dto.GetOrderStatusRequest{
-		UserID:  userID,
-		OrderID: orderID,
+		UserUUID:  userID,
+		OrderUUID: orderID,
 	})
 
 	assert.Nil(t, err)
@@ -342,9 +346,9 @@ func TestSubscribeOrderStatus_Subscribe_Error(t *testing.T) {
 	userID := uuid.New()
 
 	order := &model.Order{
-		ID:     orderID,
-		UserID: userID,
-		Status: model.StatusCreated,
+		ID:       orderID,
+		UserUUID: userID,
+		Status:   model.StatusCreated,
 	}
 
 	orderRepo.On("GetOrder", mock.Anything, orderID).
@@ -354,8 +358,8 @@ func TestSubscribeOrderStatus_Subscribe_Error(t *testing.T) {
 		Return(nil, errors.ErrUnavailableRedis)
 
 	ch, err := service.SubscribeOrderStatus(ctx, &dto.GetOrderStatusRequest{
-		UserID:  userID,
-		OrderID: orderID,
+		UserUUID:  userID,
+		OrderUUID: orderID,
 	})
 
 	assert.Nil(t, ch)
@@ -375,9 +379,9 @@ func TestSubscribeOrderStatus_Success(t *testing.T) {
 	statusCh := make(chan model.OrderStatus, 2)
 
 	order := &model.Order{
-		ID:     orderID,
-		UserID: userID,
-		Status: model.StatusCreated,
+		ID:       orderID,
+		UserUUID: userID,
+		Status:   model.StatusCreated,
 	}
 
 	orderRepo.On("GetOrder", mock.Anything, orderID).
@@ -387,8 +391,8 @@ func TestSubscribeOrderStatus_Success(t *testing.T) {
 		Return((<-chan model.OrderStatus)(statusCh), nil)
 
 	ch, err := service.SubscribeOrderStatus(ctx, &dto.GetOrderStatusRequest{
-		UserID:  userID,
-		OrderID: orderID,
+		UserUUID:  userID,
+		OrderUUID: orderID,
 	})
 
 	assert.Nil(t, err)

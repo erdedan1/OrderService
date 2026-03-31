@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"OrderService/config"
 	"OrderService/internal/dto"
 	errs "OrderService/internal/errors"
 	"OrderService/internal/model"
@@ -22,13 +21,13 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("user.id", request.UserID.String()),
-		attribute.String("order.id", request.OrderID.String()),
+		attribute.String("user.id", request.UserUUID.String()),
+		attribute.String("order.id", request.OrderUUID.String()),
 	)
 
 	ch := make(chan *dto.GetOrderStatusResponse, 1)
 
-	order, err := s.orderRepo.GetOrder(ctx, request.OrderID, request.UserID)
+	order, err := s.orderRepo.GetOrder(ctx, request.OrderUUID, request.UserUUID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -36,7 +35,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		s.log.Error(
 			layer, method,
 			err.Error(), err,
-			"order_id", request.OrderID,
+			"order_id", request.OrderUUID,
 		)
 		return nil, err
 	}
@@ -51,8 +50,8 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		s.log.Debug(
 			layer, method,
 			"order already completed and closed",
-			"user_id", request.UserID,
-			"order_id", request.OrderID,
+			"user_id", request.UserUUID,
+			"order_id", request.OrderUUID,
 		)
 
 		return ch, nil
@@ -63,17 +62,19 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		return ch, errs.ErrUnavailableRedis
 	}
 
-	statusCh, err := s.orderStatusSubscriber.SubscribeOrderStatus(ctx, request.OrderID)
+	statusCh, err := s.orderStatusSubscriber.SubscribeOrderStatus(ctx, request.OrderUUID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Message)
 
-		s.log.Error(layer, method, err.Error(), err, "order_id", request.OrderID, "user_id", request.UserID)
+		s.log.Error(layer, method, err.Error(), err, "order_id", request.OrderUUID, "user_id", request.UserUUID)
 		return nil, err
 	}
 
-	lifecircuitCtx := context.WithoutCancel(ctx)
-	go s.publishOrderLifecircuit(lifecircuitCtx, order.ID, order.Status)
+	lifecircuitCtx, cancel := context.WithTimeout(context.Background(), s.cfg.Infrastructure.OrderLifecircuitConfig.TimeOut)
+	defer cancel() //проверить таймаут
+
+	go s.publishOrderLifecircuit(lifecircuitCtx, request.UserUUID, order.ID, order.Status)
 
 	go func(initialStatus model.OrderStatus, initialUpdatedAt *time.Time) {
 		defer close(ch)
@@ -119,7 +120,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 	return ch, nil
 }
 
-func (s *Service) publishOrderLifecircuit(ctx context.Context, orderID uuid.UUID, initialStatus model.OrderStatus) {
+func (s *Service) publishOrderLifecircuit(ctx context.Context, userID, orderID uuid.UUID, initialStatus model.OrderStatus) {
 	const method = "publishOrderLifecircuit"
 
 	s.log.Debug(layer, method, "start new sobitie")
@@ -134,9 +135,9 @@ func (s *Service) publishOrderLifecircuit(ctx context.Context, orderID uuid.UUID
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(config.Global.Infrastructure.OrderLifecircuitConfig.StepInterval):
+		case <-time.After(s.cfg.Infrastructure.OrderLifecircuitConfig.StepInterval):
 		}
-		if updateErr := s.UpdateOrderStatus(ctx, orderID, nextStatus); updateErr != nil {
+		if updateErr := s.UpdateOrderStatus(ctx, userID, orderID, nextStatus); updateErr != nil {
 			return
 		}
 		status = nextStatus
