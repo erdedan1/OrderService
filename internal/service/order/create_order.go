@@ -75,8 +75,6 @@ func (s *Service) CreateOrder(
 	}, nil
 }
 
-// добавить в контекст user_id и проверять его(чтобы не создавать под другим пользователем order)
-
 func (s *Service) getAuthorizedUser(ctx context.Context, request *dto.CreateOrderRequest) (*model.User, *errors.CustomError) {
 	const method = "getAuthorizedUser"
 
@@ -92,7 +90,7 @@ func (s *Service) getAuthorizedUser(ctx context.Context, request *dto.CreateOrde
 		return nil, err
 	}
 
-	if user.Role != request.UserRole || user.ID != request.UserUUID {
+	if user.Role != request.UserRole {
 		span.RecordError(errs.ErrUserHasNoAccessToMarket)
 		span.SetStatus(codes.Error, "no access rights")
 

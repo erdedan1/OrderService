@@ -55,7 +55,7 @@ func (r *Repository) GetOrder(ctx context.Context, orderID, userID uuid.UUID) (*
 			"order_id", orderID,
 			"user_id", userID,
 		)
-		return nil, errorz.New(errorz.INTERNAL, "failed to get order", err)
+		return nil, errorz.New(errorz.INTERNAL, "failed to get order")
 	}
 
 	span.SetStatus(codes.Ok, "get order success")

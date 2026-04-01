@@ -33,7 +33,7 @@ func (r *Repository) CreateOrder(ctx context.Context, order *model.Order) (*mode
 			err.Error(), err,
 			"order_id", order.ID,
 		)
-		return nil, errorz.New(errorz.INTERNAL, "failed to create order", err)
+		return nil, errorz.New(errorz.INTERNAL, "failed to create order")
 	}
 
 	span.SetStatus(codes.Ok, "order success created")

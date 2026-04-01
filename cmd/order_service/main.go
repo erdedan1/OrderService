@@ -5,8 +5,9 @@ import (
 	"OrderService/internal/app"
 	"OrderService/internal/telemetry"
 	"context"
+	"log"
 
-	log "github.com/erdedan1/shared/logger"
+	logCustom "github.com/erdedan1/shared/logger"
 )
 
 func main() {
@@ -14,29 +15,33 @@ func main() {
 
 	cfg, err := config.New()
 	if err != nil {
-		panic(err) //логировать
-		//лучше выйти с ошибкой чем с паникой
+		log.Fatal(err)
+		return
 	}
 
-	logger, err := log.NewLogger(cfg.Infrastructure.Observability.Loglvl)
+	logger, err := logCustom.NewLogger(cfg.Infrastructure.Observability.Loglvl)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+		return
 	}
 	defer logger.Sync()
 
 	tp, err := telemetry.New(ctx, cfg.Infrastructure.Observability.Telemetry)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+		return
 	}
 	defer tp.Shutdown(ctx)
 
-	app, errC := app.Build(cfg, logger, tp)
+	appInstance, errC := app.Build(cfg, logger, tp)
 	if errC != nil {
-		panic(errC)
+		log.Fatal(errC)
+		return
 	}
 
-	if err := app.Start(ctx); err != nil {
-		panic(err)
+	if err := appInstance.Start(ctx); err != nil {
+		log.Fatal(err)
+		return
 	}
 }
 

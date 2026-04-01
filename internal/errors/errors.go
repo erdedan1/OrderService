@@ -20,4 +20,6 @@ var (
 	ErrUnavailableDataRedis   = errs.New(errs.UNAVAILABLE, "failed to get data from redis")
 	ErrFailedDeserializeRedis = errs.New(errs.INTERNAL, "failed to deserialize markets redis")
 	ErrDeleteRedis            = errs.New(errs.UNAVAILABLE, "failed to delete redis key")
+
+	ErrFailedToUpdateOrderStatus = errs.New(errs.INTERNAL, "failed to update order status")
 )

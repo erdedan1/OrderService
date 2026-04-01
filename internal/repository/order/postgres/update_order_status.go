@@ -40,7 +40,7 @@ func (r *Repository) UpdateOrderStatus(ctx context.Context, id uuid.UUID, status
 			err.Error(), err,
 			"order_id", id,
 		)
-		return errorz.New(errorz.INTERNAL, err.Error(), err)
+		return errs.ErrFailedToUpdateOrderStatus
 	}
 
 	rowsAffected, err := res.RowsAffected()
@@ -54,7 +54,7 @@ func (r *Repository) UpdateOrderStatus(ctx context.Context, id uuid.UUID, status
 			err.Error(), err,
 			"order_id", id,
 		)
-		return errorz.New(errorz.INTERNAL, "failed to update order status", err)
+		return errs.ErrFailedToUpdateOrderStatus
 	}
 	if rowsAffected == 0 {
 		span.RecordError(errs.ErrOrderNotFound)

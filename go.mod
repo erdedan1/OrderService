@@ -3,7 +3,7 @@ module OrderService
 go 1.26.1
 
 require (
-	github.com/erdedan1/protocol v1.0.5
+	github.com/erdedan1/protocol v1.0.6
 	github.com/erdedan1/shared v1.1.2
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/go-redis/redis/v8 v8.11.5

@@ -14,6 +14,8 @@ github.com/envoyproxy/protoc-gen-validate v1.3.3 h1:MVQghNeW+LZcmXe7SY1V36Z+WFMD
 github.com/envoyproxy/protoc-gen-validate v1.3.3/go.mod h1:TsndJ/ngyIdQRhMcVVGDDHINPLWB7C82oDArY51KfB0=
 github.com/erdedan1/protocol v1.0.5 h1:ex4bZLzrdJMXcnbIZ5UkoCtJol85KTNZXxvuMg5KT0M=
 github.com/erdedan1/protocol v1.0.5/go.mod h1:cHLx/BCN+unDXWAcuV0IOpCA5RCup1Jg1aHsaMwAIMs=
+github.com/erdedan1/protocol v1.0.6 h1:Sdy7GTnqHqKO1wWpop3lLL+StvB0bbcpoX/soH7piAk=
+github.com/erdedan1/protocol v1.0.6/go.mod h1:cHLx/BCN+unDXWAcuV0IOpCA5RCup1Jg1aHsaMwAIMs=
 github.com/erdedan1/shared v1.1.1 h1:6jU7Yjq96BTv6ajo9h3+WPtNFfJo/yLDXqBLrHMrEuY=
 github.com/erdedan1/shared v1.1.1/go.mod h1:ejR6P0dtKAvJh55t2m1y08PPuI1kAJ0lLObj5HgFZ6o=
 github.com/erdedan1/shared v1.1.2 h1:jvZ+4HVSWXoddd8BIFfd5Tk23bpwqinZvYYsH1RwyLE=

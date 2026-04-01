@@ -38,6 +38,10 @@ func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderReques
 	ctx, span := h.tracer.Start(ctx, "OrderHandler.CreateOrder")
 	defer span.End()
 
+	if !checkUser(ctx, request.UserUuid) {
+		return nil, status.Error(3, "invalid user-uuid")
+	}
+
 	dto, err := new(dto.CreateOrderRequest).FromProto(request)
 	if err != nil {
 		span.RecordError(err)
@@ -73,6 +77,10 @@ func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatus
 	ctx, span := h.tracer.Start(ctx, "OrderHandler.GetOrderStatus")
 	defer span.End()
 
+	if !checkUser(ctx, request.UserUuid) {
+		return nil, status.Error(3, "invalid user-uuid")
+	}
+
 	dto, err := new(dto.GetOrderStatusRequest).FromProto(request)
 	if err != nil {
 		span.RecordError(err)
@@ -106,6 +114,10 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 	const method = "SubscribeOrderStatus"
 
 	ctx := stream.Context()
+
+	if !checkUser(ctx, request.UserUuid) {
+		return status.Error(3, "invalid user-uuid")
+	}
 
 	ctx, span := h.tracer.Start(ctx, "OrderHandler.SubscribeOrderStatus")
 	defer span.End()
@@ -160,4 +172,13 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 			}
 		}
 	}
+}
+
+func checkUser(ctx context.Context, requestUserUUID string) bool {
+	userUUID := clientKeyFromContext(ctx)
+
+	if userUUID != requestUserUUID {
+		return false
+	}
+	return true
 }
