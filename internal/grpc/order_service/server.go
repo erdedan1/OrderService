@@ -26,8 +26,10 @@ type GRPCServer struct {
 
 func NewGRPCServer(address string, orderService usecase.OrderService, logger log.Logger, tp trace.TracerProvider, cfg config.InfrastructureConfig) (*GRPCServer, *errs.CustomError) {
 	rateLimiter := newGRPCRateLimiter(
-		cfg.RateLimiter.RequestsPerSecond,
-		cfg.RateLimiter.Burst,
+		cfg.RateLimiter.GlobalRequestsPerSecond,
+		cfg.RateLimiter.GlobalBurst,
+		cfg.RateLimiter.ClientRequestsPerSecond,
+		cfg.RateLimiter.ClientBurst,
 	)
 
 	cycleBreaker := newGRPCCircuitBreaker(

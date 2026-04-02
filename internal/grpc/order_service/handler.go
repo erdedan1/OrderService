@@ -2,6 +2,7 @@ package order_service
 
 import (
 	"context"
+	"fmt"
 
 	"OrderService/internal/dto"
 	"OrderService/internal/usecase"
@@ -39,7 +40,7 @@ func (h *Handler) CreateOrder(ctx context.Context, request *pb.CreateOrderReques
 	defer span.End()
 
 	if !checkUser(ctx, request.UserUuid) {
-		return nil, status.Error(3, "invalid user-uuid")
+		return nil, status.Error(3, "invalid x-user-uuid")
 	}
 
 	dto, err := new(dto.CreateOrderRequest).FromProto(request)
@@ -78,7 +79,7 @@ func (h *Handler) GetOrderStatus(ctx context.Context, request *pb.GetOrderStatus
 	defer span.End()
 
 	if !checkUser(ctx, request.UserUuid) {
-		return nil, status.Error(3, "invalid user-uuid")
+		return nil, status.Error(3, "invalid x-user-uuid")
 	}
 
 	dto, err := new(dto.GetOrderStatusRequest).FromProto(request)
@@ -116,7 +117,7 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 	ctx := stream.Context()
 
 	if !checkUser(ctx, request.UserUuid) {
-		return status.Error(3, "invalid user-uuid")
+		return status.Error(3, "invalid x-user-uuid")
 	}
 
 	ctx, span := h.tracer.Start(ctx, "OrderHandler.SubscribeOrderStatus")
@@ -133,9 +134,6 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 		)
 		return status.Error(grpc_codes.Code(err.Code), err.Message)
 	}
-
-	ctx, cancel := context.WithCancel(stream.Context())
-	defer cancel()
 
 	ch, err := h.orderService.SubscribeOrderStatus(ctx, dto)
 	if err != nil {
@@ -176,8 +174,9 @@ func (h *Handler) SubscribeOrderStatus(request *pb.GetOrderStatusRequest, stream
 
 func checkUser(ctx context.Context, requestUserUUID string) bool {
 	userUUID := clientKeyFromContext(ctx)
-
-	if userUUID != requestUserUUID {
+	fmt.Println(userUUID)
+	fmt.Println(requestUserUUID)
+	if userUUID != "x-user-uuid"+requestUserUUID {
 		return false
 	}
 	return true

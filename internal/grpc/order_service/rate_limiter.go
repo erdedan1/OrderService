@@ -19,20 +19,24 @@ type rateBucket struct {
 }
 
 type grpcRateLimiter struct {
-	mu             sync.Mutex
-	requestsPerSec float64
-	burst          float64
-	globalBucket   rateBucket
-	clients        map[string]*rateBucket
+	mu           sync.Mutex
+	globalRPS    float64
+	globalBurst  float64
+	clientRPS    float64
+	clientBurst  float64
+	globalBucket rateBucket
+	clients      map[string]*rateBucket
 }
 
-func newGRPCRateLimiter(requestsPerSecond float64, burst int) *grpcRateLimiter {
+func newGRPCRateLimiter(globalRPS, clientRPS, clientBurst, globalBurst float64) *grpcRateLimiter {
 	now := time.Now()
 	return &grpcRateLimiter{
-		requestsPerSec: requestsPerSecond,
-		burst:          float64(burst),
+		globalRPS:   globalRPS,
+		globalBurst: globalBurst,
+		clientRPS:   clientRPS,
+		clientBurst: clientBurst,
 		globalBucket: rateBucket{
-			availableTokens:  float64(burst),
+			availableTokens:  globalBurst,
 			lastRefillAtTime: now,
 		},
 		clients: make(map[string]*rateBucket),
@@ -62,19 +66,19 @@ func (l *grpcRateLimiter) allow(clientKey string) bool {
 	defer l.mu.Unlock()
 
 	now := time.Now()
-	if !allowBucket(&l.globalBucket, now, l.requestsPerSec, l.burst) {
+	if !allowBucket(&l.globalBucket, now, l.globalRPS, l.globalBurst) {
 		return false
 	}
 	bucket, exists := l.clients[clientKey]
 	if !exists {
 		bucket = &rateBucket{
-			availableTokens:  l.burst,
+			availableTokens:  l.clientBurst,
 			lastRefillAtTime: now,
 		}
 		l.clients[clientKey] = bucket
 	}
 
-	return allowBucket(bucket, now, l.requestsPerSec, l.burst)
+	return allowBucket(bucket, now, l.clientRPS, l.clientBurst)
 }
 
 func allowBucket(bucket *rateBucket, now time.Time, requestPerSec, burst float64) bool {
@@ -95,7 +99,7 @@ func clientKeyFromContext(ctx context.Context) string {
 			return "client-id" + clientID
 		}
 		if userUUID := firstMetadataValue(md, "x-user-uuid"); userUUID != "" {
-			return "user-uuid" + userUUID
+			return "x-user-uuid" + userUUID
 		}
 	}
 

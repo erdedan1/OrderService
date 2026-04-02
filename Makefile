@@ -8,3 +8,6 @@ migrate-down:
 
 migrate-reset:
 	goose -dir internal/migrations postgres "$(MIGRATE_URL)" reset
+
+probe:
+	go run ./cmd/test2

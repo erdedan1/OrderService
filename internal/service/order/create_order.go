@@ -5,6 +5,7 @@ import (
 	errs "OrderService/internal/errors"
 	"OrderService/internal/model"
 	"context"
+	"fmt"
 
 	errors "github.com/erdedan1/shared/errs"
 	"github.com/google/uuid"
@@ -124,7 +125,7 @@ func (s *Service) ensureMarketsAccess(ctx context.Context, userID uuid.UUID, rol
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-
+		fmt.Println("111", err.Error())
 		s.log.Error(layer, method, err.Error(), err, "user_id", userID)
 		return err
 	}

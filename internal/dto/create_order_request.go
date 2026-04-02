@@ -27,7 +27,7 @@ func (c *CreateOrderRequest) FromProto(request *pb.CreateOrderRequest) (*CreateO
 
 	userId, _ := uuid.Parse(request.UserUuid)
 	marketId, _ := uuid.Parse(request.MarketUuid)
-	price, err := decimal.NewFromString(request.Price.String())
+	price, err := decimal.NewFromString(request.Price.Value)
 	if err != nil {
 		return nil, errs.ErrInvalidArgument
 	}

@@ -71,16 +71,18 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		return nil, err
 	}
 
-	lifecircuitCtx, cancel := context.WithTimeout(context.Background(), s.cfg.Infrastructure.OrderLifecircuitConfig.TimeOut)
-	defer cancel() //проверить таймаут
-
-	go s.publishOrderLifecircuit(lifecircuitCtx, request.UserUUID, order.ID, order.Status)
+	go s.publishOrderLifecircuit(ctx, request.UserUUID, order.ID, order.Status)
 
 	go func(initialStatus model.OrderStatus, initialUpdatedAt *time.Time) {
 		defer close(ch)
 
+		ctx, cancel := context.WithTimeout(context.Background(), s.cfg.Infrastructure.OrderLifecircuitConfig.TimeOut)
+		defer cancel()
+
 		select {
 		case <-ctx.Done():
+			s.log.Debug(layer, method, "SubscribeOrderStatus response ctx.Done()", "error", ctx.Err())
+			//мб надо отправлять ошибку или еще что то
 			return
 		case ch <- &dto.GetOrderStatusResponse{Status: initialStatus.ToString(), UpdatedAt: initialUpdatedAt}:
 		}
@@ -89,6 +91,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 		for {
 			select {
 			case <-ctx.Done():
+				s.log.Debug(layer, method, "SubscribeOrderStatus status ctx.Done()", "error", ctx.Err())
 				return
 			case status, ok := <-statusCh:
 				if !ok {
@@ -104,6 +107,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 
 				select {
 				case <-ctx.Done():
+					s.log.Debug(layer, method, "SubscribeOrderStatus send ctx.Done()", "error", ctx.Err())
 					return
 				case ch <- &dto.GetOrderStatusResponse{Status: status.ToString(), UpdatedAt: &now}:
 				}
@@ -122,7 +126,7 @@ func (s *Service) SubscribeOrderStatus(ctx context.Context, request *dto.GetOrde
 
 func (s *Service) publishOrderLifecircuit(ctx context.Context, userID, orderID uuid.UUID, initialStatus model.OrderStatus) {
 	const method = "publishOrderLifecircuit"
-
+	defer s.log.Debug(layer, method, "end sobitie")
 	s.log.Debug(layer, method, "start new sobitie")
 
 	status := initialStatus
@@ -134,10 +138,12 @@ func (s *Service) publishOrderLifecircuit(ctx context.Context, userID, orderID u
 
 		select {
 		case <-ctx.Done():
+			s.log.Debug(layer, method, "SubscribeOrderStatus send ctx.Done()", "error", ctx.Err())
 			return
 		case <-time.After(s.cfg.Infrastructure.OrderLifecircuitConfig.StepInterval):
 		}
 		if updateErr := s.UpdateOrderStatus(ctx, userID, orderID, nextStatus); updateErr != nil {
+			s.log.Error(layer, method, "publishOrderLifecircuit UpdateOrderStatus error", updateErr)
 			return
 		}
 		status = nextStatus

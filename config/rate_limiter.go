@@ -1,6 +1,9 @@
 package config
 
 type RateLimiterConfig struct {
-	RequestsPerSecond float64 `env:"RATE_LIMITER_RPS" env-default:"50" validate:"gt=0"`
-	Burst             int     `env:"RATE_LIMITER_BURST" env-default:"100" validate:"gt=0"`
+	GlobalRequestsPerSecond float64 `env:"RATE_LIMITER_GLOBAL_RPS" env-default:"50" validate:"gt=0"`
+	GlobalBurst             float64 `env:"RATE_LIMITER_GLOBAL_BURST" env-default:"100" validate:"gt=0"`
+
+	ClientRequestsPerSecond float64 `env:"RATE_LIMITER_CLIENT_RPS" env-default:"50" validate:"gt=0"`
+	ClientBurst             float64 `env:"RATE_LIMITER_CLIENT_BURST" env-default:"100" validate:"gt=0"`
 }
